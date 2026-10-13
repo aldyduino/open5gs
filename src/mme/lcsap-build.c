@@ -187,13 +187,19 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         goto cleanup;
 
     pkbuf = ogs_asn_encode(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
+    ogs_free(pdu);
+    pdu = NULL;
     if (!pkbuf)
         ogs_error("ogs_asn_encode(LCS-AP Location Service Request) failed");
 
 cleanup:
-    ogs_asn_free(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
+    if (pdu) {
+        ogs_asn_free(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
+        ogs_free(pdu);
+    }
     return pkbuf;
 }
+
 
 ogs_pkbuf_t *lcsap_build_connection_oriented_information(
         LCSAP_Payload_Type_t payload_type,
@@ -300,11 +306,15 @@ ogs_pkbuf_t *lcsap_build_connection_oriented_information(
         goto cleanup;
 
     pkbuf = ogs_asn_encode(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
+    ogs_free(pdu);
+    pdu = NULL;
     if (!pkbuf)
         ogs_error("ogs_asn_encode(LCS-AP-PDU) failed");
 
 cleanup:
-    if (pdu)
+    if (pdu) {
         ogs_asn_free(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
+        ogs_free(pdu);
+    }
     return pkbuf;
 }
