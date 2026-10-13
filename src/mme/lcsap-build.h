@@ -16,7 +16,8 @@ ogs_pkbuf_t *lcsap_build_connection_oriented_information(
         const uint8_t *payload, size_t payload_len);
 ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         LCSAP_Location_Type_t location_type, const uint8_t *imsi,
-        size_t imsi_len, long client_type);
+        size_t imsi_len, const uint8_t plmn_id[3], uint32_t cell_id,
+        long client_type);
 
 #ifdef __cplusplus
 }

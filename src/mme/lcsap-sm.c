@@ -39,7 +39,6 @@ typedef struct lcsap_slg_pending_s {
 } lcsap_slg_pending_t;
 
 static ogs_list_t slg_pending_list;
-static uint32_t slg_correlation_id;
 
 static lcsap_slg_pending_t *lcsap_slg_pending_find(uint32_t correlation_id)
 {
@@ -149,7 +148,6 @@ static void lcsap_slg_timeout(void *data)
 void lcsap_slg_init(void)
 {
     ogs_list_init(&slg_pending_list);
-    slg_correlation_id = 0;
 }
 
 void lcsap_slg_final(void)
@@ -299,7 +297,9 @@ void lcsap_handle_slg_request(struct msg *request)
     size_t imsi_len;
     long location_type = LCSAP_Location_Type_geographic_Information;
     long client_type = LCSAP_LCS_Client_Type_value_Added_Services;
+    ogs_nas_plmn_id_t nas_plmn_id;
     mme_ue_t *mme_ue = NULL;
+    enb_ue_t *enb_ue = NULL;
     mme_esmlc_t *esmlc = NULL;
     lcsap_slg_pending_t *pending = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
@@ -361,6 +361,12 @@ void lcsap_handle_slg_request(struct msg *request)
         ogs_warn("SLg request for inactive or unknown IMSI[%s]", imsi);
         goto reject;
     }
+    enb_ue = enb_ue_find_by_id(mme_ue->enb_ue_id);
+    if (!enb_ue || enb_ue->mme_ue_s1ap_id == INVALID_UE_S1AP_ID ||
+        enb_ue->enb_ue_s1ap_id == INVALID_UE_S1AP_ID) {
+        ogs_warn("SLg request for IMSI[%s] has no valid S1 context", imsi);
+        goto reject;
+    }
     ogs_list_for_each(&mme_self()->esmlc_list, esmlc) {
         if (esmlc->sock)
             break;
@@ -370,13 +376,10 @@ void lcsap_handle_slg_request(struct msg *request)
         goto reject;
     }
 
-    correlation_id = ++slg_correlation_id;
-    if (!correlation_id)
-        correlation_id = ++slg_correlation_id;
-    while (lcsap_slg_pending_find(correlation_id)) {
-        correlation_id = ++slg_correlation_id;
-        if (!correlation_id)
-            correlation_id = ++slg_correlation_id;
+    correlation_id = enb_ue->mme_ue_s1ap_id;
+    if (lcsap_slg_pending_find(correlation_id)) {
+        ogs_warn("SLg request already pending for IMSI[%s]", imsi);
+        goto reject;
     }
 
     pending = ogs_calloc(1, sizeof(*pending));
@@ -392,11 +395,14 @@ void lcsap_handle_slg_request(struct msg *request)
     }
     ogs_list_add(&slg_pending_list, pending);
 
+    ogs_nas_from_plmn_id(&nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     pkbuf = lcsap_build_location_request(correlation_id,
             location_type == 0 ?
                 LCSAP_Location_Type_geographic_Information :
                 LCSAP_Location_Type_last_known_location,
-            (const uint8_t *)imsi, imsi_len, client_type);
+            (const uint8_t *)imsi, imsi_len,
+            (const uint8_t *)&nas_plmn_id, mme_ue->e_cgi.cell_id,
+            client_type);
     if (!pkbuf || lcsap_send(esmlc, pkbuf) != OGS_OK) {
         if (pending->diameter_request)
             (void)lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY,
@@ -431,15 +437,23 @@ static void lcsap_handle_connection_oriented_information(
     for (i = 0; i < OGS_ASN_LIST_COUNT(&container->list); i++) {
         LCSAP_Connection_Oriented_Information_IEs_t *ie =
             OGS_ASN_LIST_GET(&container->list, i);
+        if (!ie)
+            continue;
         switch (ie->id) {
         case LCSAP_id_Correlation_ID:
-            correlation = ie->value.choice.Correlation_ID;
+            if (ie->value.present ==
+                    LCSAP_Connection_Oriented_Information_IEs__value_PR_Correlation_ID)
+                correlation = ie->value.choice.Correlation_ID;
             break;
         case LCSAP_id_Payload_Type:
-            payload_type = ie->value.choice.Payload_Type;
+            if (ie->value.present ==
+                    LCSAP_Connection_Oriented_Information_IEs__value_PR_Payload_Type)
+                payload_type = ie->value.choice.Payload_Type;
             break;
         case LCSAP_id_APDU:
-            apdu = ie->value.choice.APDU;
+            if (ie->value.present ==
+                    LCSAP_Connection_Oriented_Information_IEs__value_PR_APDU)
+                apdu = ie->value.choice.APDU;
             break;
         default:
             break;
@@ -447,7 +461,7 @@ static void lcsap_handle_connection_oriented_information(
     }
 
     if (!payload_type || !correlation || correlation->size != 4 ||
-        !apdu || !apdu->size) {
+        !correlation->buf || !apdu || !apdu->size || !apdu->buf) {
         ogs_warn("Discard LCS-AP information without a valid payload");
         return;
     }

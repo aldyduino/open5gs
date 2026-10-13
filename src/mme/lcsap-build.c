@@ -4,6 +4,7 @@
 #include "LCSAP_APDU.h"
 #include "LCSAP_Connection-Oriented-Information.h"
 #include "LCSAP_Criticality.h"
+#include "LCSAP_E-CGI.h"
 #include "LCSAP_InitiatingMessage.h"
 #include "LCSAP_LCS-AP-PDU.h"
 #include "LCSAP_Location-Request.h"
@@ -21,7 +22,8 @@
 
 ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         LCSAP_Location_Type_t location_type, const uint8_t *imsi,
-        size_t imsi_len, long client_type)
+        size_t imsi_len, const uint8_t plmn_id[3], uint32_t cell_id,
+        long client_type)
 {
     ogs_pkbuf_t *pkbuf = NULL;
     LCSAP_LCS_AP_PDU_t *pdu = NULL;
@@ -29,13 +31,16 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
     LCSAP_Location_Request_t *request = NULL;
     LCSAP_ProtocolIE_Container_81P0_t *container = NULL;
     LCSAP_Location_Request_IEs_t *ie = NULL;
+    LCSAP_E_CGI_t *e_cgi = NULL;
     uint8_t correlation[4];
+    uint8_t cell_identity[4];
     uint8_t imsi_tbcd[(OGS_MAX_IMSI_BCD_LEN + 1) / 2];
     char imsi_bcd[OGS_MAX_IMSI_BCD_LEN + 1];
     size_t i;
     int imsi_tbcd_len;
 
     if (!imsi || !imsi_len || imsi_len > OGS_MAX_IMSI_BCD_LEN ||
+        !plmn_id || cell_id > 0x0fffffff ||
         client_type < LCSAP_LCS_Client_Type_emergency_Services ||
         client_type > LCSAP_LCS_Client_Type_pLMN_Operator_Target_MS_Service_Support) {
         ogs_error("Invalid LCS-AP Location Service Request parameters");
@@ -117,6 +122,35 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
     if (!ie->value.choice.Location_Type)
         goto cleanup;
     *ie->value.choice.Location_Type = location_type;
+
+    ie = ogs_calloc(1, sizeof(*ie));
+    if (!ie)
+        goto cleanup;
+    if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+        ogs_free(ie);
+        ie = NULL;
+        goto cleanup;
+    }
+    ie->id = LCSAP_id_E_UTRAN_Cell_Identifier;
+    ie->criticality = LCSAP_Criticality_ignore;
+    ie->value.present = LCSAP_Location_Request_IEs__value_PR_E_CGI;
+    ie->value.choice.E_CGI = ogs_calloc(1, sizeof(*e_cgi));
+    if (!ie->value.choice.E_CGI)
+        goto cleanup;
+    e_cgi = ie->value.choice.E_CGI;
+    if (OCTET_STRING_fromBuf(&e_cgi->pLMNidentity,
+                (const char *)plmn_id, 3) != 0)
+        goto cleanup;
+    cell_identity[0] = (uint8_t)(cell_id >> 20);
+    cell_identity[1] = (uint8_t)(cell_id >> 12);
+    cell_identity[2] = (uint8_t)(cell_id >> 4);
+    cell_identity[3] = (uint8_t)((cell_id & 0x0f) << 4);
+    e_cgi->cell_ID.buf = ogs_malloc(sizeof(cell_identity));
+    if (!e_cgi->cell_ID.buf)
+        goto cleanup;
+    memcpy(e_cgi->cell_ID.buf, cell_identity, sizeof(cell_identity));
+    e_cgi->cell_ID.size = sizeof(cell_identity);
+    e_cgi->cell_ID.bits_unused = 4;
 
     ie = ogs_calloc(1, sizeof(*ie));
     if (!ie)
