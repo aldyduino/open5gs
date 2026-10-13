@@ -19,6 +19,7 @@ libhss_sources = files('''
     hss-context.h
     hss-fd-path.h
     hss-s6a-path.h
+    hss-sh-path.h
     hss-event.h
     hss-timer.h
     hss-sm.h
@@ -31,6 +32,7 @@ libhss_sources = files('''
     hss-sm.c
 
     hss-s6a-path.c
+    hss-sh-path.c
     hss-cx-path.c
     hss-swx-path.c
 
@@ -46,6 +48,7 @@ libhss = static_library('hss',
                     libcrypt_dep,
                     libdbi_dep,
                     libdiameter_s6a_dep,
+                    libdiameter_sh_dep,
                     libdiameter_cx_dep,
                     libdiameter_swx_dep],
     install : false)
@@ -57,6 +60,7 @@ libhss_dep = declare_dependency(
                     libcrypt_dep,
                     libdbi_dep,
                     libdiameter_s6a_dep,
+                    libdiameter_sh_dep,
                     libdiameter_cx_dep,
                     libdiameter_swx_dep])
 

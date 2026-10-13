@@ -20,6 +20,7 @@
 #include "ogs-sctp.h"
 
 #include "mme-context.h"
+#include "mme-fd-path.h"
 #include "mme-event.h"
 #include "mme-timer.h"
 #include "nas-path.h"
@@ -4268,6 +4269,7 @@ void mme_ue_remove(mme_ue_t *mme_ue)
 {
     sgw_ue_t *sgw_ue = NULL;
     ogs_assert(mme_ue);
+    mme_s6a_psi_cancel(mme_ue);
 
     ogs_list_remove(&self.mme_ue_list, mme_ue);
 

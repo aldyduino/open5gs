@@ -106,6 +106,8 @@ extern struct dict_object *ogs_diam_s6a_cmd_clr;
 extern struct dict_object *ogs_diam_s6a_cmd_cla;
 extern struct dict_object *ogs_diam_s6a_cmd_idr;
 extern struct dict_object *ogs_diam_s6a_cmd_ida;
+extern struct dict_object *ogs_diam_s6a_cmd_psi;
+extern struct dict_object *ogs_diam_s6a_cmd_psa;
 
 extern struct dict_object *ogs_diam_s6a_ulr_flags;
 extern struct dict_object *ogs_diam_s6a_ula_flags;
@@ -169,6 +171,8 @@ extern struct dict_object *ogs_diam_s6a_sms_register_request;
 extern struct dict_object *ogs_diam_s6a_supported_features;
 extern struct dict_object *ogs_diam_s6a_feature_list_id;
 extern struct dict_object *ogs_diam_s6a_feature_list;
+extern struct dict_object *ogs_diam_s6a_requested_user_data;
+extern struct dict_object *ogs_diam_s6a_current_location;
 
 typedef struct ogs_diam_e_utran_vector_s {
     uint8_t                 xres[OGS_MAX_RES_LEN];

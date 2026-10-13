@@ -98,6 +98,30 @@ int ogs_dict_s6a_entry(char *conffile)
 
     /* AVP section */
     {
+        /* Requested-User-Data AVP - 3GPP TS 29.272 #7.3 */
+        {
+            struct dict_avp_data data = {
+                1408,                                   /* Code */
+                10415,                                  /* Vendor */
+                "Requested-User-Data",                  /* Name */
+                AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                AVP_FLAG_VENDOR,                        /* Fixed flag values */
+                AVP_TYPE_UNSIGNED32                     /* base type of data */
+            };
+            CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+        }
+        {
+            struct dict_avp_data data = {
+                707,                                    /* Code */
+                10415,                                  /* Vendor */
+                "Current-Location",                     /* Name */
+                AVP_FLAG_VENDOR | AVP_FLAG_MANDATORY,   /* Fixed flags */
+                AVP_FLAG_VENDOR,                        /* Fixed flag values */
+                AVP_TYPE_UNSIGNED32                     /* base type of data */
+            };
+            CHECK_dict_new(DICT_AVP, &data, NULL, NULL);
+        }
+
         {
             /* AIR-Flags AVP - 3GPP TS 29.272 #7.3.201 */
             struct dict_avp_data data = {
@@ -647,6 +671,64 @@ int ogs_dict_s6a_entry(char *conffile)
 
             CHECK_dict_new( DICT_COMMAND, &data, s6a, &cmd);
             PARSE_loc_rules( rules, cmd );
+        }
+
+        /* Provide-Subscriber-Info-Request - 3GPP TS 29.272 #7.2.15 */
+        {
+            struct dict_object * cmd;
+            struct dict_cmd_data data = {
+                323,                                                    /* Code */
+                "Provide-Subscriber-Info-Request",                      /* Name */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE                   /* Fixed flag values */
+            };
+            struct local_rules_definition rules[] =
+            {
+                {  {                      .avp_name = "Session-Id" }, RULE_FIXED_HEAD, -1, 1 },
+                {  {                      .avp_name = "Vendor-Specific-Application-Id" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Auth-Session-State" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "Origin-Host" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "Origin-Realm" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "Destination-Host" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Destination-Realm" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "User-Name" }, RULE_REQUIRED, -1, 1 },
+                {  { .avp_vendor = 10415, .avp_name = "Requested-User-Data" }, RULE_REQUIRED, -1, 1 },
+                {  { .avp_vendor = 10415, .avp_name = "Current-Location" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Proxy-Info" }, RULE_OPTIONAL, -1, -1 },
+                {  {                      .avp_name = "Route-Record" }, RULE_OPTIONAL, -1, -1 },
+            };
+            CHECK_dict_new(DICT_COMMAND, &data, s6a, &cmd);
+            PARSE_loc_rules(rules, cmd);
+        }
+
+        /* Provide-Subscriber-Info-Answer - 3GPP TS 29.272 #7.2.16 */
+        {
+            struct dict_object * cmd;
+            struct dict_cmd_data data = {
+                323,                                                    /* Code */
+                "Provide-Subscriber-Info-Answer",                       /* Name */
+                CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR, /* Fixed flags */
+                CMD_FLAG_PROXIABLE                                      /* Fixed flag values */
+            };
+            struct local_rules_definition rules[] =
+            {
+                {  {                      .avp_name = "Session-Id" }, RULE_FIXED_HEAD, -1, 1 },
+                {  {                      .avp_name = "Vendor-Specific-Application-Id" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Result-Code" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Experimental-Result" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Auth-Session-State" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "Origin-Host" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "Origin-Realm" }, RULE_REQUIRED, -1, 1 },
+                {  {                      .avp_name = "User-Name" }, RULE_OPTIONAL, -1, 1 },
+                {  { .avp_vendor = 10415, .avp_name = "EPS-User-State" }, RULE_OPTIONAL, -1, 1 },
+                {  { .avp_vendor = 10415, .avp_name = "EPS-Location-Information" }, RULE_OPTIONAL, -1, 1 },
+                {  { .avp_vendor = 10415, .avp_name = "RAT-Type" }, RULE_OPTIONAL, -1, 1 },
+                {  {                      .avp_name = "Failed-AVP" }, RULE_OPTIONAL, -1, -1 },
+                {  {                      .avp_name = "Proxy-Info" }, RULE_OPTIONAL, -1, -1 },
+                {  {                      .avp_name = "Route-Record" }, RULE_OPTIONAL, -1, -1 },
+            };
+            CHECK_dict_new(DICT_COMMAND, &data, s6a, &cmd);
+            PARSE_loc_rules(rules, cmd);
         }
 
     }

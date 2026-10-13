@@ -20,13 +20,16 @@
 #include "mme-event.h"
 #include "mme-fd-path.h"
 #include "mme-s13-handler.h"
+#include "s1ap-path.h"
 
 /* handler for Cancel-Location-Request cb */
 static struct disp_hdl *hdl_s6a_clr = NULL;
 
 /* handler for Insert-Subscriber-Data-Request cb */
 static struct disp_hdl *hdl_s6a_idr = NULL;
+static struct disp_hdl *hdl_s6a_psi = NULL;
 static struct disp_hdl *hdl_slg_psl = NULL;
+static bool mme_fd_finalizing = false;
 
 static struct session_handler *mme_s6a_reg = NULL;
 static struct session_handler *mme_s13_reg = NULL;
@@ -48,6 +51,8 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg);
 static void mme_s6a_ula_cb(void *data, struct msg **msg);
 static void mme_s6a_pua_cb(void *data, struct msg **msg);
 static int mme_slg_psl_cb(struct msg **msg, struct avp *avp,
+        struct session *session, void *opaque, enum disp_action *act);
+static int mme_s6a_psi_cb(struct msg **msg, struct avp *avp,
         struct session *session, void *opaque, enum disp_action *act);
 static void mme_s13_eca_cb(void *data, struct msg **msg);
 static void mme_s13_ecr_expire_cb(void *data, DiamId_t sender,
@@ -3233,6 +3238,8 @@ int mme_fd_init(void)
     int ret;
     struct disp_when data;
 
+    mme_fd_finalizing = false;
+
     ret = ogs_diam_init(FD_MODE_CLIENT,
                 mme_self()->diam_conf_path, mme_self()->diam_config);
     ogs_assert(ret == 0);
@@ -3267,6 +3274,12 @@ int mme_fd_init(void)
                 &hdl_s6a_idr);
     ogs_assert(ret == 0);
 
+    /* Provide-Subscriber-Info-Request from the HSS */
+    data.command = ogs_diam_s6a_cmd_psi;
+    ret = fd_disp_register(mme_s6a_psi_cb, DISP_HOW_CC, &data, NULL,
+                &hdl_s6a_psi);
+    ogs_assert(ret == 0);
+
     memset(&data, 0, sizeof(data));
     data.command = ogs_diam_slg_cmd_psl;
     ret = fd_disp_register(mme_slg_psl_cb, DISP_HOW_CC, &data, NULL,
@@ -3293,6 +3306,8 @@ void mme_fd_final(void)
 {
     int ret;
 
+    mme_fd_finalizing = true;
+
     ret = fd_sess_handler_destroy(&mme_s6a_reg, NULL);
     ogs_assert(ret == OGS_OK);
 
@@ -3305,8 +3320,300 @@ void mme_fd_final(void)
     if (hdl_s6a_idr)
         (void) fd_disp_unregister(&hdl_s6a_idr, NULL);
 
+    if (hdl_s6a_psi)
+        (void) fd_disp_unregister(&hdl_s6a_psi, NULL);
+
     if (hdl_slg_psl)
         (void) fd_disp_unregister(&hdl_slg_psl, NULL);
 
     ogs_diam_final();
+}
+
+static int mme_s6a_psi_cb(struct msg **msg, struct avp *avp,
+        struct session *session, void *opaque, enum disp_action *act)
+{
+    int rv;
+    mme_event_t *event = NULL;
+
+    (void)avp;
+    (void)session;
+    (void)opaque;
+    (void)act;
+
+    if (!msg || !*msg)
+        return EINVAL;
+
+    event = mme_event_new(MME_EVENT_S6A_PSI_REQUEST);
+    event->diameter_message = *msg;
+    rv = ogs_queue_push(ogs_app()->queue, event);
+    if (rv != OGS_OK) {
+        ogs_error("Failed to queue Provide-Subscriber-Info-Request [%d]", rv);
+        mme_event_free(event);
+        return rv;
+    }
+
+    ogs_pollset_notify(ogs_app()->pollset);
+    *msg = NULL;
+    return 0;
+}
+
+static int mme_s6a_psi_answer(struct msg **request, mme_ue_t *mme_ue,
+        bool success)
+{
+    int ret;
+    struct msg *answer = NULL;
+    struct avp *avp = NULL, *eps_location = NULL, *mme_location = NULL;
+    struct avp *eps_user_state = NULL, *mme_user_state = NULL;
+    union avp_value val;
+
+    ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, request, 0);
+    if (ret != 0)
+        return ret;
+    answer = *request;
+
+    ret = ogs_diam_message_vendor_specific_appid_set(
+            answer, OGS_DIAM_S6A_APPLICATION_ID);
+    if (ret != 0)
+        goto error;
+    ret = fd_msg_add_origin(answer, 0);
+    if (ret != 0)
+        goto error;
+    ret = fd_msg_rescode_set(answer,
+            success ? (char *)"DIAMETER_SUCCESS" :
+                (char *)"DIAMETER_UNABLE_TO_COMPLY",
+            NULL, NULL, 1);
+    if (ret != 0)
+        goto error;
+
+    ret = fd_msg_avp_new(ogs_diam_auth_session_state, 0, &avp);
+    if (ret != 0)
+        goto error;
+    val.i32 = OGS_DIAM_AUTH_SESSION_NO_STATE_MAINTAINED;
+    ret = fd_msg_avp_setvalue(avp, &val);
+    if (ret == 0)
+        ret = fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, avp);
+    if (ret != 0)
+        goto error;
+
+    if (success) {
+        uint8_t ecgi[7], tai[5];
+        ogs_nas_plmn_id_t nas_plmn_id;
+        char cell_id_hex[9], tac_hex[5], hex_buf[9];
+        ogs_time_t age;
+
+        ogs_snprintf(cell_id_hex, sizeof(cell_id_hex), "%08x",
+                mme_ue->e_cgi.cell_id);
+        memcpy(ecgi, ogs_nas_from_plmn_id(&nas_plmn_id,
+                    &mme_ue->e_cgi.plmn_id), 3);
+        memcpy(ecgi + 3, ogs_hex_from_string(cell_id_hex,
+                    hex_buf, sizeof(hex_buf)), 4);
+
+        ogs_snprintf(tac_hex, sizeof(tac_hex), "%04x", mme_ue->tai.tac);
+        memcpy(tai, ogs_nas_from_plmn_id(&nas_plmn_id,
+                    &mme_ue->tai.plmn_id), 3);
+        memcpy(tai + 3, ogs_hex_from_string(tac_hex,
+                    hex_buf, sizeof(hex_buf)), 2);
+
+        age = (ogs_time_now() - mme_ue->ue_location_timestamp) /
+            OGS_USEC_PER_SEC / 60;
+        if (age < 0)
+            age = 0;
+
+        ret = fd_msg_avp_new(ogs_diam_s6a_eps_location_information, 0,
+                &eps_location);
+        if (ret != 0)
+            goto error;
+        ret = fd_msg_avp_new(ogs_diam_s6a_mme_location_information, 0,
+                &mme_location);
+        if (ret != 0)
+            goto error;
+
+        ret = fd_msg_avp_new(ogs_diam_s6a_e_utran_cell_global_identity,
+                0, &avp);
+        if (ret != 0)
+            goto error;
+        val.os.data = ecgi;
+        val.os.len = sizeof(ecgi);
+        ret = fd_msg_avp_setvalue(avp, &val);
+        if (ret == 0)
+            ret = fd_msg_avp_add(mme_location, MSG_BRW_LAST_CHILD, avp);
+        if (ret != 0)
+            goto error;
+
+        ret = fd_msg_avp_new(ogs_diam_s6a_tracking_area_identity, 0, &avp);
+        if (ret != 0)
+            goto error;
+        val.os.data = tai;
+        val.os.len = sizeof(tai);
+        ret = fd_msg_avp_setvalue(avp, &val);
+        if (ret == 0)
+            ret = fd_msg_avp_add(mme_location, MSG_BRW_LAST_CHILD, avp);
+        if (ret != 0)
+            goto error;
+
+        ret = fd_msg_avp_new(ogs_diam_s6a_age_of_location_information, 0,
+                &avp);
+        if (ret != 0)
+            goto error;
+        val.u32 = (uint32_t)age;
+        ret = fd_msg_avp_setvalue(avp, &val);
+        if (ret == 0)
+            ret = fd_msg_avp_add(mme_location, MSG_BRW_LAST_CHILD, avp);
+        if (ret == 0)
+            ret = fd_msg_avp_add(eps_location, MSG_BRW_LAST_CHILD,
+                    mme_location);
+        if (ret == 0)
+            ret = fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, eps_location);
+        if (ret != 0)
+            goto error;
+
+        ret = fd_msg_avp_new(ogs_diam_s6a_eps_user_state, 0,
+                &eps_user_state);
+        if (ret != 0)
+            goto error;
+        ret = fd_msg_avp_new(ogs_diam_s6a_mme_user_state, 0,
+                &mme_user_state);
+        if (ret != 0)
+            goto error;
+        ret = fd_msg_avp_new(ogs_diam_s6a_user_state, 0, &avp);
+        if (ret != 0)
+            goto error;
+        val.u32 = 4; /* Connected and reachable for paging. */
+        ret = fd_msg_avp_setvalue(avp, &val);
+        if (ret == 0)
+            ret = fd_msg_avp_add(mme_user_state, MSG_BRW_LAST_CHILD, avp);
+        if (ret == 0)
+            ret = fd_msg_avp_add(eps_user_state, MSG_BRW_LAST_CHILD,
+                    mme_user_state);
+        if (ret == 0)
+            ret = fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, eps_user_state);
+        if (ret != 0)
+            goto error;
+
+        ret = fd_msg_avp_new(ogs_diam_rat_type, 0, &avp);
+        if (ret != 0)
+            goto error;
+        val.u32 = OGS_DIAM_S6A_RAT_TYPE_EUTRAN;
+        ret = fd_msg_avp_setvalue(avp, &val);
+        if (ret == 0)
+            ret = fd_msg_avp_add(answer, MSG_BRW_LAST_CHILD, avp);
+        if (ret != 0)
+            goto error;
+    }
+
+    ret = fd_msg_send(request, NULL, NULL);
+    return ret;
+
+error:
+    if (answer)
+        (void)fd_msg_free(answer);
+    *request = NULL;
+    return ret;
+}
+
+void mme_s6a_psi_process(struct msg *request)
+{
+    int ret;
+    struct avp *avp = NULL;
+    struct avp_hdr *hdr = NULL;
+    char imsi_bcd[OGS_MAX_IMSI_BCD_LEN+1];
+    mme_ue_t *mme_ue = NULL;
+
+    ogs_assert(request);
+    ret = fd_msg_search_avp(request, ogs_diam_user_name, &avp);
+    if (ret == 0 && avp)
+        ret = fd_msg_avp_hdr(avp, &hdr);
+    if (ret != 0 || !avp || !hdr || !hdr->avp_value ||
+            !hdr->avp_value->os.data ||
+            hdr->avp_value->os.len == 0 ||
+            hdr->avp_value->os.len > OGS_MAX_IMSI_BCD_LEN) {
+        struct msg *answer = request;
+        ogs_error("Invalid User-Name in Provide-Subscriber-Info-Request");
+        (void)mme_s6a_psi_answer(&answer, NULL, false);
+        if (answer)
+            (void)fd_msg_free(answer);
+        return;
+    }
+
+    memcpy(imsi_bcd, hdr->avp_value->os.data, hdr->avp_value->os.len);
+    imsi_bcd[hdr->avp_value->os.len] = '\0';
+    if (!ogs_imsi_bcd_is_valid(imsi_bcd))
+        mme_ue = NULL;
+    else
+        mme_ue = mme_ue_find_by_imsi_bcd(imsi_bcd);
+
+    if (!mme_ue) {
+        struct msg *answer = request;
+        (void)mme_s6a_psi_answer(&answer, NULL, false);
+        if (answer)
+            (void)fd_msg_free(answer);
+        return;
+    }
+
+    if (ECM_CONNECTED(mme_ue)) {
+        struct msg *answer = request;
+        ret = mme_s6a_psi_answer(&answer, mme_ue, true);
+        if (ret != 0 && answer)
+            (void)fd_msg_free(answer);
+        return;
+    }
+
+    if (mme_ue->psi_request || mme_ue->t3413.pkbuf) {
+        struct msg *answer = request;
+        (void)mme_s6a_psi_answer(&answer, NULL, false);
+        if (answer)
+            (void)fd_msg_free(answer);
+        return;
+    }
+
+    mme_ue->psi_request = request;
+    mme_ue->paging.failed = false;
+    ret = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+    if (ret != OGS_OK) {
+        ogs_error("[%s] Failed to page UE for active location retrieval",
+                mme_ue->imsi_bcd);
+        mme_ue->paging.failed = true;
+        mme_s6a_psi_complete(mme_ue);
+    }
+}
+
+void mme_s6a_psi_complete(mme_ue_t *mme_ue)
+{
+    int ret;
+    bool success;
+    struct msg *request;
+
+    ogs_assert(mme_ue);
+    if (!mme_ue->psi_request)
+        return;
+
+    if (!ECM_CONNECTED(mme_ue) && !mme_ue->paging.failed)
+        return;
+
+    success = ECM_CONNECTED(mme_ue);
+    request = mme_ue->psi_request;
+    mme_ue->psi_request = NULL;
+    ret = mme_s6a_psi_answer(&request, mme_ue, success);
+    if (ret != 0 && request)
+        (void)fd_msg_free(request);
+}
+
+void mme_s6a_psi_cancel(mme_ue_t *mme_ue)
+{
+    int ret;
+    struct msg *request;
+
+    ogs_assert(mme_ue);
+    if (!mme_ue->psi_request)
+        return;
+
+    request = mme_ue->psi_request;
+    mme_ue->psi_request = NULL;
+    if (mme_fd_finalizing) {
+        (void)fd_msg_free(request);
+        return;
+    }
+    ret = mme_s6a_psi_answer(&request, NULL, false);
+    if (ret != 0 && request)
+        (void)fd_msg_free(request);
 }

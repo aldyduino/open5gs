@@ -882,6 +882,30 @@ char *hss_cx_get_server_name(char *public_identity)
     return server_name;
 }
 
+char *hss_cx_get_server_name_by_imsi(char *imsi_bcd)
+{
+    hss_impi_t *impi = NULL;
+    hss_imsi_t *imsi = NULL;
+    char *server_name = NULL;
+
+    ogs_thread_mutex_lock(&self.cx_lock);
+
+    imsi = imsi_find_by_id(imsi_bcd);
+    if (imsi) {
+        ogs_list_for_each(&self.impi_list, impi) {
+            if (impi->imsi == imsi) {
+                server_name = impi_get_server_name(impi);
+                if (server_name)
+                    break;
+            }
+        }
+    }
+
+    ogs_thread_mutex_unlock(&self.cx_lock);
+
+    return server_name;
+}
+
 void hss_cx_set_server_name(
         char *public_identity, char *server_name, bool overwrite)
 {

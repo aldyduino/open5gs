@@ -21,6 +21,7 @@
 #define HSS_CONTEXT_H
 
 #include "ogs-diameter-s6a.h"
+#include "ogs-diameter-sh.h"
 #include "ogs-diameter-cx.h"
 #include "ogs-diameter-swx.h"
 #include "ogs-dbi.h"
@@ -87,6 +88,7 @@ char *hss_cx_get_visited_network_identifier(char *public_identity);
 char *hss_cx_get_user_name(char *public_identity);
 
 char *hss_cx_get_server_name(char *public_identity);
+char *hss_cx_get_server_name_by_imsi(char *imsi_bcd);
 void hss_cx_set_server_name(
         char *public_identity, char *server_name, bool overwrite);
 

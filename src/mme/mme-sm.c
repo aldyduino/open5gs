@@ -805,6 +805,12 @@ cleanup:
         ogs_free(s6a_message);
         break;
 
+    case MME_EVENT_S6A_PSI_REQUEST:
+        ogs_assert(e->diameter_message);
+        mme_s6a_psi_process(e->diameter_message);
+        e->diameter_message = NULL;
+        break;
+
     case MME_EVENT_S13_MESSAGE:
         s13_message = e->s13_message;
         ogs_assert(s13_message);
@@ -1235,5 +1241,11 @@ cleanup:
     default:
         ogs_error("No handler for event %s", mme_event_get_name(e));
         break;
+    }
+
+    if (e->id == MME_EVENT_EMM_MESSAGE || e->id == MME_EVENT_EMM_TIMER) {
+        mme_ue = mme_ue_find_by_id(e->mme_ue_id);
+        if (mme_ue && mme_ue->psi_request)
+            mme_s6a_psi_complete(mme_ue);
     }
 }

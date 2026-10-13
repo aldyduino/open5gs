@@ -83,6 +83,8 @@ void hss_fd_final(void);
 
 int hss_s6a_init(void);
 void hss_s6a_final(void);
+int hss_sh_init(void);
+void hss_sh_final(void);
 int hss_cx_init(void);
 void hss_cx_final(void);
 int hss_swx_init(void);
