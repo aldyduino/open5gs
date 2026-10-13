@@ -21,15 +21,14 @@ extern "C" {
 #endif
 
 #define OGS_DIAM_SLG_APPLICATION_ID 16777255
-#define OGS_DIAM_SLG_CMD_CODE_PROVIDE_SUBSCRIBER_LOCATION 8388620
+#define OGS_DIAM_SLG_CMD_CODE_PROVIDE_LOCATION 8388620
 #define OGS_DIAM_SLG_AVP_CODE_SLG_LOCATION_TYPE 2500
 #define OGS_DIAM_SLG_AVP_CODE_AGE_OF_LOCATION_ESTIMATE 2514
 
 extern struct dict_object *ogs_diam_slg_application;
-extern struct dict_object *ogs_diam_slg_cmd_psl;
-extern struct dict_object *ogs_diam_slg_cmd_psl_answer;
+extern struct dict_object *ogs_diam_slg_cmd_plr;
+extern struct dict_object *ogs_diam_slg_cmd_plr_answer;
 extern struct dict_object *ogs_diam_slg_user_name;
-extern struct dict_object *ogs_diam_slg_location_type;
 extern struct dict_object *ogs_diam_slg_slg_location_type;
 extern struct dict_object *ogs_diam_slg_client_type;
 extern struct dict_object *ogs_diam_slg_location_estimate;

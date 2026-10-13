@@ -16,10 +16,9 @@
                 (_what), (_result), ENOENT))
 
 struct dict_object *ogs_diam_slg_application = NULL;
-struct dict_object *ogs_diam_slg_cmd_psl = NULL;
-struct dict_object *ogs_diam_slg_cmd_psl_answer = NULL;
+struct dict_object *ogs_diam_slg_cmd_plr = NULL;
+struct dict_object *ogs_diam_slg_cmd_plr_answer = NULL;
 struct dict_object *ogs_diam_slg_user_name = NULL;
-struct dict_object *ogs_diam_slg_location_type = NULL;
 struct dict_object *ogs_diam_slg_slg_location_type = NULL;
 struct dict_object *ogs_diam_slg_client_type = NULL;
 struct dict_object *ogs_diam_slg_location_estimate = NULL;
@@ -32,14 +31,14 @@ int ogs_diam_slg_init(void)
         OGS_DIAM_SLG_APPLICATION_ID, "SLg"
     };
     struct dict_cmd_data cmd_data = {
-        OGS_DIAM_SLG_CMD_CODE_PROVIDE_SUBSCRIBER_LOCATION,
-        "Provide-Subscriber-Location-Request",
+        OGS_DIAM_SLG_CMD_CODE_PROVIDE_LOCATION,
+        "3GPP/Provide-Location-Request",
         CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR,
         CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE
     };
     struct dict_cmd_data answer_data = {
-        OGS_DIAM_SLG_CMD_CODE_PROVIDE_SUBSCRIBER_LOCATION,
-        "Provide-Subscriber-Location-Answer",
+        OGS_DIAM_SLG_CMD_CODE_PROVIDE_LOCATION,
+        "3GPP/Provide-Location-Answer",
         CMD_FLAG_REQUEST | CMD_FLAG_PROXIABLE | CMD_FLAG_ERROR,
         CMD_FLAG_PROXIABLE
     };
@@ -50,17 +49,14 @@ int ogs_diam_slg_init(void)
     CHECK_FCT(fd_dict_new(fd_g_config->cnf_dict, DICT_APPLICATION,
                 &app_data, vendor, &ogs_diam_slg_application));
     CHECK_FCT(fd_dict_new(fd_g_config->cnf_dict, DICT_COMMAND,
-                &cmd_data, ogs_diam_slg_application, &ogs_diam_slg_cmd_psl));
+                &cmd_data, ogs_diam_slg_application, &ogs_diam_slg_cmd_plr));
     CHECK_FCT(fd_dict_new(fd_g_config->cnf_dict, DICT_COMMAND,
                 &answer_data, ogs_diam_slg_application,
-                &ogs_diam_slg_cmd_psl_answer));
+                &ogs_diam_slg_cmd_plr_answer));
 
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME, "User-Name",
             &ogs_diam_slg_user_name);
     avp_request.avp_vendor = 10415;
-    avp_request.avp_name = "Location-Type";
-    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
-            &ogs_diam_slg_location_type);
     avp_request.avp_name = "SLg-Location-Type";
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
             &ogs_diam_slg_slg_location_type);

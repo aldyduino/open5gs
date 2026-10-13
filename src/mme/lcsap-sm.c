@@ -68,11 +68,14 @@ static int lcsap_slg_answer(lcsap_slg_pending_t *pending,
     answer = pending->diameter_request;
     rv = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, &answer, 0);
     if (rv != 0) {
-        ogs_error("fd_msg_new_answer_from_req() failed for SLg [%d]", rv);
+        ogs_error("fd_msg_new_answer_from_req() failed for Provide-Location [%d]",
+                rv);
         return OGS_ERROR;
     }
     pending->diameter_request = NULL;
 
+    rv = fd_msg_add_origin(answer, 0);
+    ogs_assert(rv == 0);
     rv = fd_msg_rescode_set(answer,
             (char *)(result_code == ER_DIAMETER_SUCCESS ?
                 "DIAMETER_SUCCESS" : "DIAMETER_UNABLE_TO_COMPLY"),
@@ -136,7 +139,7 @@ static void lcsap_slg_timeout(void *data)
     lcsap_slg_pending_t *pending = data;
 
     ogs_assert(pending);
-    ogs_warn("SLg Provide-Subscriber-Location timed out [Correlation-ID:%u]",
+    ogs_warn("SLg Provide-Location timed out [Correlation-ID:%u]",
             pending->correlation_id);
     if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) != OGS_OK)
         ogs_error("Failed to send SLg timeout answer");
@@ -291,9 +294,7 @@ static void lcsap_slg_location_response(LCSAP_Location_Response_t *response,
 void lcsap_handle_slg_request(struct msg *request)
 {
     struct avp *avp = NULL;
-    struct avp *child = NULL;
     struct avp_hdr *hdr = NULL;
-    struct avp_hdr *child_hdr = NULL;
     char imsi[OGS_MAX_IMSI_BCD_LEN + 1];
     size_t imsi_len;
     long location_type = LCSAP_Location_Type_geographic_Information;
@@ -326,36 +327,18 @@ void lcsap_handle_slg_request(struct msg *request)
         }
     }
 
-    rv = fd_msg_search_avp(request, ogs_diam_slg_location_type, &avp);
+    rv = fd_msg_search_avp(request, ogs_diam_slg_slg_location_type, &avp);
     if (rv != 0 || !avp || fd_msg_avp_hdr(avp, &hdr) != 0) {
-        ogs_warn("Reject SLg request without Location-Type");
+        ogs_warn("Reject Provide-Location-Request without SLg-Location-Type");
         goto reject;
     }
-    rv = fd_msg_browse(avp, MSG_BRW_FIRST_CHILD, &child, NULL);
-    if (rv != 0) {
-        ogs_warn("Cannot read SLg Location-Type");
+    if (!hdr->avp_value) {
+        ogs_warn("Cannot read SLg-Location-Type value");
         goto reject;
     }
-    while (child) {
-        if (fd_msg_avp_hdr(child, &child_hdr) != 0)
-            goto reject;
-        if (child_hdr->avp_code == OGS_DIAM_SLG_AVP_CODE_SLG_LOCATION_TYPE &&
-            child_hdr->avp_vendor == OGS_3GPP_VENDOR_ID) {
-            if (!child_hdr->avp_value)
-                goto reject;
-            location_type = child_hdr->avp_value->i32;
-            break;
-        }
-        rv = fd_msg_browse(child, MSG_BRW_NEXT, &child, NULL);
-        if (rv != 0)
-            goto reject;
-    }
-    if (!child) {
-        ogs_warn("SLg Location-Type has no SLg-Location-Type AVP");
-        goto reject;
-    }
+    location_type = hdr->avp_value->i32;
     if (location_type < 0 || location_type > 1) {
-        ogs_warn("Reject unsupported SLg Location-Type[%ld]", location_type);
+        ogs_warn("Reject unsupported SLg-Location-Type[%ld]", location_type);
         goto reject;
     }
 

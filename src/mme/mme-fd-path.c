@@ -26,7 +26,7 @@ static struct disp_hdl *hdl_s6a_clr = NULL;
 
 /* handler for Insert-Subscriber-Data-Request cb */
 static struct disp_hdl *hdl_s6a_idr = NULL;
-static struct disp_hdl *hdl_slg_psl = NULL;
+static struct disp_hdl *hdl_slg_plr = NULL;
 
 static struct session_handler *mme_s6a_reg = NULL;
 static struct session_handler *mme_s13_reg = NULL;
@@ -47,7 +47,7 @@ struct sess_state {
 static void mme_s6a_aia_cb(void *data, struct msg **msg);
 static void mme_s6a_ula_cb(void *data, struct msg **msg);
 static void mme_s6a_pua_cb(void *data, struct msg **msg);
-static int mme_slg_psl_cb(struct msg **msg, struct avp *avp,
+static int mme_slg_plr_cb(struct msg **msg, struct avp *avp,
         struct session *session, void *opaque, enum disp_action *act);
 static void mme_s13_eca_cb(void *data, struct msg **msg);
 static void mme_s13_ecr_expire_cb(void *data, DiamId_t sender,
@@ -3197,7 +3197,7 @@ cleanup:
         state_cleanup(sess_data, NULL, NULL);
 }
 
-static int mme_slg_psl_cb(struct msg **msg, struct avp *avp,
+static int mme_slg_plr_cb(struct msg **msg, struct avp *avp,
         struct session *session, void *opaque, enum disp_action *act)
 {
     mme_event_t *e = NULL;
@@ -3268,9 +3268,9 @@ int mme_fd_init(void)
     ogs_assert(ret == 0);
 
     memset(&data, 0, sizeof(data));
-    data.command = ogs_diam_slg_cmd_psl;
-    ret = fd_disp_register(mme_slg_psl_cb, DISP_HOW_CC, &data, NULL,
-                &hdl_slg_psl);
+    data.command = ogs_diam_slg_cmd_plr;
+    ret = fd_disp_register(mme_slg_plr_cb, DISP_HOW_CC, &data, NULL,
+                &hdl_slg_plr);
     ogs_assert(ret == 0);
 
     /* Advertise the support for the application in the peer */
@@ -3305,8 +3305,8 @@ void mme_fd_final(void)
     if (hdl_s6a_idr)
         (void) fd_disp_unregister(&hdl_s6a_idr, NULL);
 
-    if (hdl_slg_psl)
-        (void) fd_disp_unregister(&hdl_slg_psl, NULL);
+    if (hdl_slg_plr)
+        (void) fd_disp_unregister(&hdl_slg_plr, NULL);
 
     ogs_diam_final();
 }
