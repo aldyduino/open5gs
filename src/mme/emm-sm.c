@@ -34,6 +34,8 @@
 #include "mme-gtp-path.h"
 #include "mme-path.h"
 #include "mme-sm.h"
+#include "lcsap-build.h"
+#include "lcsap-path.h"
 
 #undef OGS_LOG_DOMAIN
 #define OGS_LOG_DOMAIN __emm_log_domain
@@ -427,6 +429,42 @@ static void common_register_state(ogs_fsm_t *s, mme_event_t *e,
         }
 
         switch (message->emm.h.message_type) {
+        case OGS_NAS_EPS_UPLINK_GENERIC_NAS_TRANSPORT: {
+            ogs_nas_eps_uplink_generic_nas_transport_t *transport =
+                &message->emm.uplink_generic_nas_transport;
+            ogs_pkbuf_t *pkbuf = NULL;
+            uint8_t correlation_id[4];
+            uint32_t mme_ue_s1ap_id = enb_ue->mme_ue_s1ap_id;
+
+            if (state != EMM_COMMON_STATE_REGISTERED ||
+                transport->generic_message_container_type !=
+                    OGS_NAS_GENERIC_MESSAGE_CONTAINER_TYPE_LTE_POSITIONING_PROTOCOL) {
+                ogs_debug("Ignore generic NAS container type[%d]",
+                        transport->generic_message_container_type);
+                break;
+            }
+
+            if (!transport->generic_message_container.length ||
+                !transport->generic_message_container.buffer) {
+                ogs_warn("Empty uplink LPP message");
+                break;
+            }
+
+            correlation_id[0] = (mme_ue_s1ap_id >> 24) & 0xff;
+            correlation_id[1] = (mme_ue_s1ap_id >> 16) & 0xff;
+            correlation_id[2] = (mme_ue_s1ap_id >> 8) & 0xff;
+            correlation_id[3] = mme_ue_s1ap_id & 0xff;
+            pkbuf = lcsap_build_connection_oriented_information(
+                    LCSAP_Payload_Type_lPP, correlation_id,
+                    transport->generic_message_container.buffer,
+                    transport->generic_message_container.length);
+            if (!pkbuf) {
+                ogs_error("Failed to build LCS-AP LPP transfer");
+                break;
+            }
+            lcsap_send_to_esmlc(pkbuf);
+            break;
+        }
         case OGS_NAS_EPS_IDENTITY_RESPONSE:
             if (mme_ue->nas_eps.type == 0) {
                 ogs_warn("No Received NAS message");

@@ -20,6 +20,7 @@
 #include "mme-timer.h"
 #include "mme-event.h"
 #include "mme-context.h"
+#include "lcsap-path.h"
 
 static mme_timer_cfg_t g_mme_timer_cfg[MAX_NUM_OF_MME_TIMER] = {
     /* Paging procedure for EPS services initiated */
@@ -51,6 +52,8 @@ static mme_timer_cfg_t g_mme_timer_cfg[MAX_NUM_OF_MME_TIMER] = {
         { .have = true, .max_count = 2, .duration = ogs_time_from_sec(4) },
 
     [MME_TIMER_SGS_CLI_CONN_TO_SRV] =
+        { .have = true, .duration = ogs_time_from_sec(3) },
+    [MME_TIMER_LCSAP_CLI_CONN_TO_SRV] =
         { .have = true, .duration = ogs_time_from_sec(3) },
 
     [MME_TIMER_S1_HOLDING] =
@@ -96,6 +99,8 @@ const char *mme_timer_get_name(mme_timer_e id)
         return "MME_TIMER_IMPLICIT_DETACH";
     case MME_TIMER_SGS_CLI_CONN_TO_SRV:
         return "MME_TIMER_SGS_CLI_CONN_TO_SRV";
+    case MME_TIMER_LCSAP_CLI_CONN_TO_SRV:
+        return "MME_TIMER_LCSAP_CLI_CONN_TO_SRV";
     case MME_TIMER_S1_HOLDING:
         return "MME_TIMER_S1_HOLDING";
     case MME_TIMER_S11_HOLDING:
@@ -209,6 +214,18 @@ void mme_timer_sgs_cli_conn_to_srv(void *data)
         ogs_error("ogs_queue_push() failed:%d", (int)rv);
         mme_event_free(e);
     }
+}
+
+void mme_timer_lcsap_cli_conn_to_srv(void *data)
+{
+    mme_event_t *e = NULL;
+
+    ogs_assert(data);
+
+    e = mme_event_new(MME_EVENT_LCSAP_TIMER);
+    e->timer_id = MME_TIMER_LCSAP_CLI_CONN_TO_SRV;
+    e->esmlc = data;
+    lcsap_event_push(e);
 }
 
 void mme_timer_s1_holding_timer_expire(void *data)

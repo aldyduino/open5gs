@@ -41,6 +41,7 @@ static OGS_POOL(mme_sgsn_pool, mme_sgsn_t);
 static OGS_POOL(mme_sgw_pool, mme_sgw_t);
 static OGS_POOL(mme_pgw_pool, mme_pgw_t);
 static OGS_POOL(mme_vlr_pool, mme_vlr_t);
+static OGS_POOL(mme_esmlc_pool, mme_esmlc_t);
 static OGS_POOL(mme_csmap_pool, mme_csmap_t);
 static OGS_POOL(mme_hssmap_pool, mme_hssmap_t);
 
@@ -80,6 +81,7 @@ void mme_context_init(void)
     /* Initialize MME context */
     memset(&self, 0, sizeof(mme_context_t));
     self.diam_config = &g_diam_conf;
+    self.lcsap_port = 9082;
 
     ogs_log_install_domain(&__ogs_sctp_domain, "sctp", ogs_core()->log.level);
     ogs_log_install_domain(&__ogs_s1ap_domain, "s1ap", ogs_core()->log.level);
@@ -97,6 +99,7 @@ void mme_context_init(void)
     ogs_list_init(&self.pgw_list);
     ogs_list_init(&self.enb_list);
     ogs_list_init(&self.vlr_list);
+    ogs_list_init(&self.esmlc_list);
     ogs_list_init(&self.csmap_list);
     ogs_list_init(&self.hssmap_list);
     ogs_list_init(&self.emerg_list);
@@ -106,6 +109,7 @@ void mme_context_init(void)
     ogs_pool_init(&mme_sgw_pool, ogs_app()->pool.nf);
     ogs_pool_init(&mme_pgw_pool, ogs_app()->pool.nf);
     ogs_pool_init(&mme_vlr_pool, ogs_app()->pool.nf);
+    ogs_pool_init(&mme_esmlc_pool, ogs_app()->pool.nf);
     ogs_pool_init(&mme_csmap_pool, ogs_app()->pool.csmap);
     ogs_pool_init(&mme_hssmap_pool, ogs_app()->pool.nf);
     ogs_pool_init(&mme_emerg_pool, ogs_app()->pool.emerg);
@@ -159,6 +163,7 @@ void mme_context_final(void)
     mme_pgw_remove_all();
     mme_csmap_remove_all();
     mme_vlr_remove_all();
+    mme_esmlc_remove_all();
     mme_sgsn_remove_all();
     mme_hssmap_remove_all();
     mme_emerg_remove_all();
@@ -195,6 +200,7 @@ void mme_context_final(void)
     ogs_pool_final(&mme_pgw_pool);
     ogs_pool_final(&mme_csmap_pool);
     ogs_pool_final(&mme_vlr_pool);
+    ogs_pool_final(&mme_esmlc_pool);
     ogs_pool_final(&mme_hssmap_pool);
 
     context_initialized = 0;
@@ -2504,6 +2510,167 @@ int mme_context_parse_config(void)
                         } else
                             ogs_warn("unknown key `%s`", sgsap_key);
                     }
+                } else if (!strcmp(mme_key, "lcsap")) {
+                    ogs_yaml_iter_t lcsap_iter;
+                    ogs_yaml_iter_recurse(&mme_iter, &lcsap_iter);
+
+                    while (ogs_yaml_iter_next(&lcsap_iter)) {
+                        const char *lcsap_key =
+                            ogs_yaml_iter_key(&lcsap_iter);
+                        ogs_assert(lcsap_key);
+
+                        if (!strcmp(lcsap_key, "client")) {
+                            ogs_yaml_iter_t client_iter, client_array;
+                            ogs_yaml_iter_recurse(
+                                    &lcsap_iter, &client_array);
+                            do {
+                                const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
+                                const char *local_hostname[
+                                    OGS_MAX_NUM_OF_HOSTNAME];
+                                int hostname_num = 0;
+                                int local_hostname_num = 0;
+                                int family = AF_UNSPEC;
+                                int i;
+                                uint16_t port = self.lcsap_port;
+                                ogs_sockaddr_t *addr = NULL;
+                                ogs_sockaddr_t *local_addr = NULL;
+
+                                if (ogs_yaml_iter_type(&client_array) ==
+                                        YAML_MAPPING_NODE) {
+                                    memcpy(&client_iter, &client_array,
+                                            sizeof(ogs_yaml_iter_t));
+                                } else if (ogs_yaml_iter_type(&client_array) ==
+                                        YAML_SEQUENCE_NODE) {
+                                    if (!ogs_yaml_iter_next(&client_array))
+                                        break;
+                                    ogs_yaml_iter_recurse(
+                                            &client_array, &client_iter);
+                                } else if (ogs_yaml_iter_type(&client_array) ==
+                                        YAML_SCALAR_NODE) {
+                                    break;
+                                } else {
+                                    ogs_assert_if_reached();
+                                }
+
+                                while (ogs_yaml_iter_next(&client_iter)) {
+                                    const char *client_key =
+                                        ogs_yaml_iter_key(&client_iter);
+                                    ogs_assert(client_key);
+
+                                    if (!strcmp(client_key, "family")) {
+                                        const char *v =
+                                            ogs_yaml_iter_value(&client_iter);
+                                        if (v)
+                                            family = atoi(v);
+                                        if (family != AF_UNSPEC &&
+                                            family != AF_INET &&
+                                            family != AF_INET6) {
+                                            ogs_error("Invalid LCS-AP client "
+                                                    "address family %d",
+                                                    family);
+                                            return OGS_ERROR;
+                                        }
+                                    } else if (!strcmp(client_key, "port")) {
+                                        const char *v =
+                                            ogs_yaml_iter_value(&client_iter);
+                                        int parsed_port = v ? atoi(v) : 0;
+                                        if (parsed_port < 1 ||
+                                            parsed_port > UINT16_MAX) {
+                                            ogs_error("Invalid LCS-AP client "
+                                                    "port");
+                                            return OGS_ERROR;
+                                        }
+                                        port = parsed_port;
+                                    } else if (!strcmp(client_key, "address") ||
+                                            !strcmp(client_key,
+                                                "local_address")) {
+                                        bool is_local =
+                                            !strcmp(client_key,
+                                                "local_address");
+                                        ogs_yaml_iter_t address_iter;
+                                        const char **addresses = is_local ?
+                                            local_hostname : hostname;
+                                        int *address_num = is_local ?
+                                            &local_hostname_num :
+                                            &hostname_num;
+
+                                        ogs_yaml_iter_recurse(&client_iter,
+                                                &address_iter);
+                                        ogs_assert(ogs_yaml_iter_type(
+                                                    &address_iter) !=
+                                                YAML_MAPPING_NODE);
+                                        do {
+                                            if (ogs_yaml_iter_type(
+                                                        &address_iter) ==
+                                                    YAML_SEQUENCE_NODE) {
+                                                if (!ogs_yaml_iter_next(
+                                                            &address_iter))
+                                                    break;
+                                            }
+                                            if (*address_num >=
+                                                    OGS_MAX_NUM_OF_HOSTNAME) {
+                                                ogs_error("Too many LCS-AP "
+                                                        "client addresses");
+                                                return OGS_ERROR;
+                                            }
+                                            addresses[(*address_num)++] =
+                                                ogs_yaml_iter_value(
+                                                        &address_iter);
+                                        } while (ogs_yaml_iter_type(
+                                                    &address_iter) ==
+                                                YAML_SEQUENCE_NODE);
+                                    } else {
+                                        ogs_warn("unknown key `%s`",
+                                                client_key);
+                                    }
+                                }
+
+                                if (!hostname_num) {
+                                    ogs_error("No LCS-AP client address");
+                                    return OGS_ERROR;
+                                }
+
+                                for (i = 0; i < hostname_num; i++) {
+                                    rv = ogs_addaddrinfo(&addr, family,
+                                            hostname[i], port, 0);
+                                    if (rv != OGS_OK) {
+                                        ogs_freeaddrinfo(addr);
+                                        return rv;
+                                    }
+                                }
+                                ogs_filter_ip_version(&addr,
+                                        ogs_global_conf()->parameter.no_ipv4,
+                                        ogs_global_conf()->parameter.no_ipv6,
+                                        ogs_global_conf()->parameter.
+                                        prefer_ipv4);
+                                if (!addr) {
+                                    ogs_error("No usable LCS-AP client "
+                                            "address");
+                                    return OGS_ERROR;
+                                }
+
+                                for (i = 0; i < local_hostname_num; i++) {
+                                    rv = ogs_addaddrinfo(&local_addr, family,
+                                            local_hostname[i], 0, 0);
+                                    if (rv != OGS_OK) {
+                                        ogs_freeaddrinfo(addr);
+                                        ogs_freeaddrinfo(local_addr);
+                                        return rv;
+                                    }
+                                }
+                                ogs_filter_ip_version(&local_addr,
+                                        ogs_global_conf()->parameter.no_ipv4,
+                                        ogs_global_conf()->parameter.no_ipv6,
+                                        ogs_global_conf()->parameter.
+                                        prefer_ipv4);
+
+                                mme_esmlc_add(addr, local_addr);
+                            } while (ogs_yaml_iter_type(&client_array) ==
+                                    YAML_SEQUENCE_NODE);
+                        } else {
+                            ogs_warn("unknown key `%s`", lcsap_key);
+                        }
+                    }
                 } else if (!strcmp(mme_key, "mme_name")) {
                     self.mme_name = ogs_yaml_iter_value(&mme_iter);
                 } else if (!strcmp(mme_key, "eir")) {
@@ -3096,6 +3263,73 @@ mme_vlr_t *mme_vlr_find_by_sock(const ogs_sock_t *sock)
     ogs_list_for_each(&self.vlr_list, vlr) {
         if (vlr->sock == sock)
             return vlr;
+    }
+
+    return NULL;
+}
+
+mme_esmlc_t *mme_esmlc_add(
+        ogs_sockaddr_t *sa_list, ogs_sockaddr_t *local_sa_list)
+{
+    mme_esmlc_t *esmlc = NULL;
+
+    ogs_assert(sa_list);
+
+    ogs_pool_alloc(&mme_esmlc_pool, &esmlc);
+    ogs_assert(esmlc);
+    memset(esmlc, 0, sizeof(*esmlc));
+
+    esmlc->sa_list = sa_list;
+    esmlc->local_sa_list = local_sa_list;
+    ogs_list_add(&self.esmlc_list, esmlc);
+
+    return esmlc;
+}
+
+void mme_esmlc_remove(mme_esmlc_t *esmlc)
+{
+    ogs_assert(esmlc);
+
+    ogs_list_remove(&self.esmlc_list, esmlc);
+    mme_esmlc_close(esmlc);
+    ogs_freeaddrinfo(esmlc->sa_list);
+    ogs_freeaddrinfo(esmlc->local_sa_list);
+    if (esmlc->option)
+        ogs_free(esmlc->option);
+    ogs_pool_free(&mme_esmlc_pool, esmlc);
+}
+
+void mme_esmlc_remove_all(void)
+{
+    mme_esmlc_t *esmlc = NULL, *next_esmlc = NULL;
+
+    ogs_list_for_each_safe(&self.esmlc_list, next_esmlc, esmlc)
+        mme_esmlc_remove(esmlc);
+}
+
+void mme_esmlc_close(mme_esmlc_t *esmlc)
+{
+    ogs_assert(esmlc);
+
+    if (esmlc->poll) {
+        ogs_pollset_remove(esmlc->poll);
+        esmlc->poll = NULL;
+    }
+    if (esmlc->sock) {
+        ogs_sctp_destroy(esmlc->sock);
+        esmlc->sock = NULL;
+    }
+}
+
+mme_esmlc_t *mme_esmlc_find_by_sock(const ogs_sock_t *sock)
+{
+    mme_esmlc_t *esmlc = NULL;
+
+    ogs_assert(sock);
+
+    ogs_list_for_each(&self.esmlc_list, esmlc) {
+        if (esmlc->sock == sock)
+            return esmlc;
     }
 
     return NULL;

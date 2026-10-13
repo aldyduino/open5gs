@@ -30,6 +30,8 @@
 #include "mme-s11-build.h"
 #include "s1ap-build.h"
 #include "s1ap-handler.h"
+#include "lcsap-build.h"
+#include "lcsap-path.h"
 
 #include "mme-path.h"
 #include "mme-sm.h"

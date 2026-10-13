@@ -1,0 +1,442 @@
+ASN_MODULE_SRCS=	\
+	LPPA_Criticality.c	\
+	LPPA_LPPATransactionID.c	\
+	LPPA_Presence.c	\
+	LPPA_PrivateIE-ID.c	\
+	LPPA_ProcedureCode.c	\
+	LPPA_ProtocolIE-ID.c	\
+	LPPA_TriggeringMessage.c	\
+	LPPA_ProtocolIE-Container.c	\
+	LPPA_ProtocolIE-Single-Container.c	\
+	LPPA_ProtocolIE-Field.c	\
+	LPPA_ProtocolIE-ContainerPair.c	\
+	LPPA_ProtocolIE-FieldPair.c	\
+	LPPA_ProtocolIE-ContainerList.c	\
+	LPPA_ProtocolIE-ContainerPairList.c	\
+	LPPA_ProtocolExtensionContainer.c	\
+	LPPA_ProtocolExtensionField.c	\
+	LPPA_PrivateIE-Container.c	\
+	LPPA_PrivateIE-Field.c	\
+	LPPA_Add-OTDOACells.c	\
+	LPPA_Add-OTDOACell-Information.c	\
+	LPPA_Assistance-Information.c	\
+	LPPA_AssistanceInformationFailureList.c	\
+	LPPA_AssistanceInformationMetaData.c	\
+	LPPA_BCCH.c	\
+	LPPA_BitmapsforNPRS.c	\
+	LPPA_Broadcast.c	\
+	LPPA_BroadcastPeriodicity.c	\
+	LPPA_BSSID.c	\
+	LPPA_Cause.c	\
+	LPPA_CauseMisc.c	\
+	LPPA_CauseProtocol.c	\
+	LPPA_CauseRadioNetwork.c	\
+	LPPA_Cell-Portion-ID.c	\
+	LPPA_CPLength.c	\
+	LPPA_CriticalityDiagnostics.c	\
+	LPPA_CriticalityDiagnostics-IE-List.c	\
+	LPPA_DL-Bandwidth.c	\
+	LPPA_E-CID-MeasurementResult.c	\
+	LPPA_ECGI.c	\
+	LPPA_EUTRANCellIdentifier.c	\
+	LPPA_EARFCN.c	\
+	LPPA_E-UTRANAccessPointPosition.c	\
+	LPPA_HESSID.c	\
+	LPPA_InterRATMeasurementQuantities.c	\
+	LPPA_InterRATMeasurementQuantities-Item.c	\
+	LPPA_InterRATMeasurementQuantitiesValue.c	\
+	LPPA_InterRATMeasurementResult.c	\
+	LPPA_InterRATMeasuredResultsValue.c	\
+	LPPA_Measurement-ID.c	\
+	LPPA_MeasurementPeriodicity.c	\
+	LPPA_MeasurementQuantities.c	\
+	LPPA_MeasurementQuantities-Item.c	\
+	LPPA_MeasurementQuantitiesValue.c	\
+	LPPA_MeasuredResults.c	\
+	LPPA_MeasuredResultsValue.c	\
+	LPPA_MBSFNsubframeConfiguration.c	\
+	LPPA_MBSFNsubframeConfigurationValue.c	\
+	LPPA_NarrowBandIndex.c	\
+	LPPA_NRCellIdentity.c	\
+	LPPA_NR-CGI.c	\
+	LPPA_NPRSConfiguration.c	\
+	LPPA_NPRSMutingConfiguration.c	\
+	LPPA_NPRSSubframePartA.c	\
+	LPPA_NPRSSubframePartB.c	\
+	LPPA_NumberOfAntennaPorts.c	\
+	LPPA_NumberOfDlFrames.c	\
+	LPPA_NumberOfDlFrames-Extended.c	\
+	LPPA_NumberOfFrequencyHoppingBands.c	\
+	LPPA_NPRSSequenceInfo.c	\
+	LPPA_NRARFCN.c	\
+	LPPA_NRPCI.c	\
+	LPPA_OffsetNBChanneltoEARFCN.c	\
+	LPPA_OperationModeInfo.c	\
+	LPPA_OTDOACells.c	\
+	LPPA_OTDOACell-Information.c	\
+	LPPA_OTDOACell-Information-Item.c	\
+	LPPA_OTDOA-Information-Item.c	\
+	LPPA_Outcome.c	\
+	LPPA_PCI.c	\
+	LPPA_PhysCellIDGERAN.c	\
+	LPPA_PhysCellIDUTRA-FDD.c	\
+	LPPA_PhysCellIDUTRA-TDD.c	\
+	LPPA_PLMN-Identity.c	\
+	LPPA_PosSIBs.c	\
+	LPPA_PosSIB-Segments.c	\
+	LPPA_PosSIB-Type.c	\
+	LPPA_PRS-Bandwidth.c	\
+	LPPA_PRS-Configuration-Index.c	\
+	LPPA_PRS-ID.c	\
+	LPPA_PRSMutingConfiguration.c	\
+	LPPA_PRSOccasionGroup.c	\
+	LPPA_PRSFrequencyHoppingConfiguration.c	\
+	LPPA_RepetitionNumberofSIB1-NB.c	\
+	LPPA_ReportCharacteristics.c	\
+	LPPA_RequestedSRSTransmissionCharacteristics.c	\
+	LPPA_ResultRSRP.c	\
+	LPPA_ResultRSRP-Item.c	\
+	LPPA_ResultRSRQ.c	\
+	LPPA_ResultRSRQ-Item.c	\
+	LPPA_ResultGERAN.c	\
+	LPPA_ResultGERAN-Item.c	\
+	LPPA_ResultUTRAN.c	\
+	LPPA_ResultUTRAN-Item.c	\
+	LPPA_ResultNR.c	\
+	LPPA_ResultNR-Item.c	\
+	LPPA_ResultsPerSSB-Index-List.c	\
+	LPPA_ResultsPerSSB-Index-Item.c	\
+	LPPA_RSSI.c	\
+	LPPA_SFNInitialisationTime.c	\
+	LPPA_SRSConfigurationForAllCells.c	\
+	LPPA_SRSConfigurationForOneCell.c	\
+	LPPA_Subframeallocation.c	\
+	LPPA_SS-NRRSRP.c	\
+	LPPA_SS-NRRSRQ.c	\
+	LPPA_SSB-Index.c	\
+	LPPA_SSID.c	\
+	LPPA_SystemInformation.c	\
+	LPPA_TAC.c	\
+	LPPA_TDDConfiguration.c	\
+	LPPA_TP-ID.c	\
+	LPPA_TP-Type.c	\
+	LPPA_TypeOfError.c	\
+	LPPA_ULConfiguration.c	\
+	LPPA_UARFCN.c	\
+	LPPA_UTRA-EcN0.c	\
+	LPPA_UTRA-RSCP.c	\
+	LPPA_ValueRSRP.c	\
+	LPPA_ValueRSRQ.c	\
+	LPPA_WLANMeasurementQuantities.c	\
+	LPPA_WLANMeasurementQuantities-Item.c	\
+	LPPA_WLANMeasurementQuantitiesValue.c	\
+	LPPA_WLANMeasurementResult.c	\
+	LPPA_WLANMeasurementResult-Item.c	\
+	LPPA_WLAN-RSSI.c	\
+	LPPA_WLANBand.c	\
+	LPPA_WLANChannelList.c	\
+	LPPA_WLANChannel.c	\
+	LPPA_WLANCountryCode.c	\
+	LPPA_WLANOperatingClass.c	\
+	LPPA_E-CIDMeasurementInitiationRequest.c	\
+	LPPA_E-CIDMeasurementInitiationResponse.c	\
+	LPPA_E-CIDMeasurementInitiationFailure.c	\
+	LPPA_E-CIDMeasurementFailureIndication.c	\
+	LPPA_E-CIDMeasurementReport.c	\
+	LPPA_E-CIDMeasurementTerminationCommand.c	\
+	LPPA_OTDOAInformationRequest.c	\
+	LPPA_OTDOA-Information-Type.c	\
+	LPPA_OTDOA-Information-Type-Item.c	\
+	LPPA_OTDOAInformationResponse.c	\
+	LPPA_OTDOAInformationFailure.c	\
+	LPPA_UTDOAInformationRequest.c	\
+	LPPA_UTDOAInformationResponse.c	\
+	LPPA_UTDOAInformationFailure.c	\
+	LPPA_UTDOAInformationUpdate.c	\
+	LPPA_AssistanceInformationControl.c	\
+	LPPA_AssistanceInformationFeedback.c	\
+	LPPA_ErrorIndication.c	\
+	LPPA_PrivateMessage.c	\
+	LPPA_LPPA-PDU.c	\
+	LPPA_InitiatingMessage.c	\
+	LPPA_SuccessfulOutcome.c	\
+	LPPA_UnsuccessfulOutcome.c	\
+	LPPA_EXTERNAL.c
+
+ASN_MODULE_HDRS=	\
+	LPPA_Criticality.h	\
+	LPPA_LPPATransactionID.h	\
+	LPPA_Presence.h	\
+	LPPA_PrivateIE-ID.h	\
+	LPPA_ProcedureCode.h	\
+	LPPA_ProtocolIE-ID.h	\
+	LPPA_TriggeringMessage.h	\
+	LPPA_ProtocolIE-Container.h	\
+	LPPA_ProtocolIE-Single-Container.h	\
+	LPPA_ProtocolIE-Field.h	\
+	LPPA_ProtocolIE-ContainerPair.h	\
+	LPPA_ProtocolIE-FieldPair.h	\
+	LPPA_ProtocolIE-ContainerList.h	\
+	LPPA_ProtocolIE-ContainerPairList.h	\
+	LPPA_ProtocolExtensionContainer.h	\
+	LPPA_ProtocolExtensionField.h	\
+	LPPA_PrivateIE-Container.h	\
+	LPPA_PrivateIE-Field.h	\
+	LPPA_Add-OTDOACells.h	\
+	LPPA_Add-OTDOACell-Information.h	\
+	LPPA_Assistance-Information.h	\
+	LPPA_AssistanceInformationFailureList.h	\
+	LPPA_AssistanceInformationMetaData.h	\
+	LPPA_BCCH.h	\
+	LPPA_BitmapsforNPRS.h	\
+	LPPA_Broadcast.h	\
+	LPPA_BroadcastPeriodicity.h	\
+	LPPA_BSSID.h	\
+	LPPA_Cause.h	\
+	LPPA_CauseMisc.h	\
+	LPPA_CauseProtocol.h	\
+	LPPA_CauseRadioNetwork.h	\
+	LPPA_Cell-Portion-ID.h	\
+	LPPA_CPLength.h	\
+	LPPA_CriticalityDiagnostics.h	\
+	LPPA_CriticalityDiagnostics-IE-List.h	\
+	LPPA_DL-Bandwidth.h	\
+	LPPA_E-CID-MeasurementResult.h	\
+	LPPA_ECGI.h	\
+	LPPA_EUTRANCellIdentifier.h	\
+	LPPA_EARFCN.h	\
+	LPPA_E-UTRANAccessPointPosition.h	\
+	LPPA_HESSID.h	\
+	LPPA_InterRATMeasurementQuantities.h	\
+	LPPA_InterRATMeasurementQuantities-Item.h	\
+	LPPA_InterRATMeasurementQuantitiesValue.h	\
+	LPPA_InterRATMeasurementResult.h	\
+	LPPA_InterRATMeasuredResultsValue.h	\
+	LPPA_Measurement-ID.h	\
+	LPPA_MeasurementPeriodicity.h	\
+	LPPA_MeasurementQuantities.h	\
+	LPPA_MeasurementQuantities-Item.h	\
+	LPPA_MeasurementQuantitiesValue.h	\
+	LPPA_MeasuredResults.h	\
+	LPPA_MeasuredResultsValue.h	\
+	LPPA_MBSFNsubframeConfiguration.h	\
+	LPPA_MBSFNsubframeConfigurationValue.h	\
+	LPPA_NarrowBandIndex.h	\
+	LPPA_NRCellIdentity.h	\
+	LPPA_NR-CGI.h	\
+	LPPA_NPRSConfiguration.h	\
+	LPPA_NPRSMutingConfiguration.h	\
+	LPPA_NPRSSubframePartA.h	\
+	LPPA_NPRSSubframePartB.h	\
+	LPPA_NumberOfAntennaPorts.h	\
+	LPPA_NumberOfDlFrames.h	\
+	LPPA_NumberOfDlFrames-Extended.h	\
+	LPPA_NumberOfFrequencyHoppingBands.h	\
+	LPPA_NPRSSequenceInfo.h	\
+	LPPA_NRARFCN.h	\
+	LPPA_NRPCI.h	\
+	LPPA_OffsetNBChanneltoEARFCN.h	\
+	LPPA_OperationModeInfo.h	\
+	LPPA_OTDOACells.h	\
+	LPPA_OTDOACell-Information.h	\
+	LPPA_OTDOACell-Information-Item.h	\
+	LPPA_OTDOA-Information-Item.h	\
+	LPPA_Outcome.h	\
+	LPPA_PCI.h	\
+	LPPA_PhysCellIDGERAN.h	\
+	LPPA_PhysCellIDUTRA-FDD.h	\
+	LPPA_PhysCellIDUTRA-TDD.h	\
+	LPPA_PLMN-Identity.h	\
+	LPPA_PosSIBs.h	\
+	LPPA_PosSIB-Segments.h	\
+	LPPA_PosSIB-Type.h	\
+	LPPA_PRS-Bandwidth.h	\
+	LPPA_PRS-Configuration-Index.h	\
+	LPPA_PRS-ID.h	\
+	LPPA_PRSMutingConfiguration.h	\
+	LPPA_PRSOccasionGroup.h	\
+	LPPA_PRSFrequencyHoppingConfiguration.h	\
+	LPPA_RepetitionNumberofSIB1-NB.h	\
+	LPPA_ReportCharacteristics.h	\
+	LPPA_RequestedSRSTransmissionCharacteristics.h	\
+	LPPA_ResultRSRP.h	\
+	LPPA_ResultRSRP-Item.h	\
+	LPPA_ResultRSRQ.h	\
+	LPPA_ResultRSRQ-Item.h	\
+	LPPA_ResultGERAN.h	\
+	LPPA_ResultGERAN-Item.h	\
+	LPPA_ResultUTRAN.h	\
+	LPPA_ResultUTRAN-Item.h	\
+	LPPA_ResultNR.h	\
+	LPPA_ResultNR-Item.h	\
+	LPPA_ResultsPerSSB-Index-List.h	\
+	LPPA_ResultsPerSSB-Index-Item.h	\
+	LPPA_RSSI.h	\
+	LPPA_SFNInitialisationTime.h	\
+	LPPA_SRSConfigurationForAllCells.h	\
+	LPPA_SRSConfigurationForOneCell.h	\
+	LPPA_Subframeallocation.h	\
+	LPPA_SS-NRRSRP.h	\
+	LPPA_SS-NRRSRQ.h	\
+	LPPA_SSB-Index.h	\
+	LPPA_SSID.h	\
+	LPPA_SystemInformation.h	\
+	LPPA_TAC.h	\
+	LPPA_TDDConfiguration.h	\
+	LPPA_TP-ID.h	\
+	LPPA_TP-Type.h	\
+	LPPA_TypeOfError.h	\
+	LPPA_ULConfiguration.h	\
+	LPPA_UARFCN.h	\
+	LPPA_UTRA-EcN0.h	\
+	LPPA_UTRA-RSCP.h	\
+	LPPA_ValueRSRP.h	\
+	LPPA_ValueRSRQ.h	\
+	LPPA_WLANMeasurementQuantities.h	\
+	LPPA_WLANMeasurementQuantities-Item.h	\
+	LPPA_WLANMeasurementQuantitiesValue.h	\
+	LPPA_WLANMeasurementResult.h	\
+	LPPA_WLANMeasurementResult-Item.h	\
+	LPPA_WLAN-RSSI.h	\
+	LPPA_WLANBand.h	\
+	LPPA_WLANChannelList.h	\
+	LPPA_WLANChannel.h	\
+	LPPA_WLANCountryCode.h	\
+	LPPA_WLANOperatingClass.h	\
+	LPPA_E-CIDMeasurementInitiationRequest.h	\
+	LPPA_E-CIDMeasurementInitiationResponse.h	\
+	LPPA_E-CIDMeasurementInitiationFailure.h	\
+	LPPA_E-CIDMeasurementFailureIndication.h	\
+	LPPA_E-CIDMeasurementReport.h	\
+	LPPA_E-CIDMeasurementTerminationCommand.h	\
+	LPPA_OTDOAInformationRequest.h	\
+	LPPA_OTDOA-Information-Type.h	\
+	LPPA_OTDOA-Information-Type-Item.h	\
+	LPPA_OTDOAInformationResponse.h	\
+	LPPA_OTDOAInformationFailure.h	\
+	LPPA_UTDOAInformationRequest.h	\
+	LPPA_UTDOAInformationResponse.h	\
+	LPPA_UTDOAInformationFailure.h	\
+	LPPA_UTDOAInformationUpdate.h	\
+	LPPA_AssistanceInformationControl.h	\
+	LPPA_AssistanceInformationFeedback.h	\
+	LPPA_ErrorIndication.h	\
+	LPPA_PrivateMessage.h	\
+	LPPA_LPPA-PDU.h	\
+	LPPA_InitiatingMessage.h	\
+	LPPA_SuccessfulOutcome.h	\
+	LPPA_UnsuccessfulOutcome.h	\
+	LPPA_EXTERNAL.h
+
+ASN_MODULE_HDRS+=ANY.h
+ASN_MODULE_SRCS+=ANY.c
+ASN_MODULE_HDRS+=OCTET_STRING.h
+ASN_MODULE_HDRS+=OPEN_TYPE.h
+ASN_MODULE_SRCS+=OPEN_TYPE.c
+ASN_MODULE_HDRS+=constr_CHOICE.h
+ASN_MODULE_HDRS+=BOOLEAN.h
+ASN_MODULE_SRCS+=BOOLEAN.c
+ASN_MODULE_HDRS+=ENUMERATED.h
+ASN_MODULE_SRCS+=ENUMERATED.c
+ASN_MODULE_HDRS+=INTEGER.h
+ASN_MODULE_HDRS+=NativeEnumerated.h
+ASN_MODULE_HDRS+=GraphicString.h
+ASN_MODULE_SRCS+=GraphicString.c
+ASN_MODULE_SRCS+=INTEGER.c
+ASN_MODULE_SRCS+=NativeEnumerated.c
+ASN_MODULE_HDRS+=NativeInteger.h
+ASN_MODULE_SRCS+=NativeInteger.c
+ASN_MODULE_HDRS+=OBJECT_IDENTIFIER.h
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER.c
+ASN_MODULE_HDRS+=asn_codecs_prim.h
+ASN_MODULE_HDRS+=ObjectDescriptor.h
+ASN_MODULE_SRCS+=ObjectDescriptor.c
+ASN_MODULE_HDRS+=asn_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=asn_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=asn_SET_OF.h
+ASN_MODULE_SRCS+=asn_SET_OF.c
+ASN_MODULE_SRCS+=constr_CHOICE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE.h
+ASN_MODULE_SRCS+=constr_SEQUENCE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=constr_SET_OF.h
+ASN_MODULE_SRCS+=constr_SET_OF.c
+ASN_MODULE_HDRS+=asn_application.h
+ASN_MODULE_SRCS+=asn_application.c
+ASN_MODULE_HDRS+=asn_ioc.h
+ASN_MODULE_HDRS+=asn_system.h
+ASN_MODULE_HDRS+=asn_codecs.h
+ASN_MODULE_HDRS+=asn_internal.h
+ASN_MODULE_SRCS+=asn_internal.c
+ASN_MODULE_HDRS+=asn_bit_data.h
+ASN_MODULE_SRCS+=asn_bit_data.c
+ASN_MODULE_SRCS+=OCTET_STRING.c
+ASN_MODULE_HDRS+=BIT_STRING.h
+ASN_MODULE_SRCS+=BIT_STRING.c
+ASN_MODULE_SRCS+=asn_codecs_prim.c
+ASN_MODULE_HDRS+=ber_tlv_length.h
+ASN_MODULE_SRCS+=ber_tlv_length.c
+ASN_MODULE_HDRS+=ber_tlv_tag.h
+ASN_MODULE_SRCS+=ber_tlv_tag.c
+ASN_MODULE_HDRS+=constr_TYPE.h
+ASN_MODULE_SRCS+=constr_TYPE.c
+ASN_MODULE_HDRS+=constraints.h
+ASN_MODULE_SRCS+=constraints.c
+ASN_MODULE_HDRS+=per_decoder.h
+ASN_MODULE_HDRS+=per_encoder.h
+ASN_MODULE_HDRS+=per_support.h
+ASN_MODULE_HDRS+=per_opentype.h
+ASN_MODULE_SRCS+=per_decoder.c
+ASN_MODULE_SRCS+=per_encoder.c
+ASN_MODULE_SRCS+=per_support.c
+ASN_MODULE_SRCS+=per_opentype.c
+ASN_MODULE_HDRS+=aper_decoder.h
+ASN_MODULE_HDRS+=aper_encoder.h
+ASN_MODULE_HDRS+=aper_support.h
+ASN_MODULE_HDRS+=aper_opentype.h
+ASN_MODULE_SRCS+=aper_decoder.c
+ASN_MODULE_SRCS+=aper_encoder.c
+ASN_MODULE_SRCS+=aper_support.c
+ASN_MODULE_SRCS+=aper_opentype.c
+ASN_MODULE_SRCS+=ANY_aper.c
+ASN_MODULE_SRCS+=BOOLEAN_aper.c
+ASN_MODULE_SRCS+=ENUMERATED_aper.c
+ASN_MODULE_SRCS+=INTEGER_aper.c
+ASN_MODULE_SRCS+=NativeEnumerated_aper.c
+ASN_MODULE_SRCS+=NativeInteger_aper.c
+ASN_MODULE_SRCS+=OCTET_STRING_aper.c
+ASN_MODULE_SRCS+=OPEN_TYPE_aper.c
+ASN_MODULE_SRCS+=constr_CHOICE_aper.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF_aper.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_aper.c
+ASN_MODULE_SRCS+=constr_SET_OF_aper.c
+ASN_MODULE_SRCS+=BIT_STRING_print.c
+ASN_MODULE_SRCS+=BOOLEAN_print.c
+ASN_MODULE_SRCS+=INTEGER_print.c
+ASN_MODULE_SRCS+=NativeInteger_print.c
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER_print.c
+ASN_MODULE_SRCS+=OCTET_STRING_print.c
+ASN_MODULE_SRCS+=OPEN_TYPE_print.c
+ASN_MODULE_SRCS+=constr_CHOICE_print.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_print.c
+ASN_MODULE_SRCS+=constr_SET_OF_print.c
+ASN_MODULE_HDRS+=asn_random_fill.h
+ASN_MODULE_SRCS+=asn_random_fill.c
+ASN_MODULE_SRCS+=BIT_STRING_rfill.c
+ASN_MODULE_SRCS+=BOOLEAN_rfill.c
+ASN_MODULE_SRCS+=INTEGER_rfill.c
+ASN_MODULE_SRCS+=NativeInteger_rfill.c
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER_rfill.c
+ASN_MODULE_SRCS+=OCTET_STRING_rfill.c
+ASN_MODULE_SRCS+=constr_CHOICE_rfill.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_rfill.c
+ASN_MODULE_SRCS+=constr_SET_OF_rfill.c
+
+ASN_MODULE_CFLAGS=-DASN_DISABLE_BER_SUPPORT -DASN_DISABLE_XER_SUPPORT -DASN_DISABLE_OER_SUPPORT -DASN_DISABLE_UPER_SUPPORT -DASN_DISABLE_JER_SUPPORT -DASN_DISABLE_CBOR_SUPPORT 
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm

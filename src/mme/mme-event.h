@@ -51,6 +51,11 @@ typedef enum {
     MME_EVENT_SGSAP_LO_SCTP_COMM_UP,
     MME_EVENT_SGSAP_LO_CONNREFUSED,
 
+    MME_EVENT_LCSAP_MESSAGE,
+    MME_EVENT_LCSAP_TIMER,
+    MME_EVENT_LCSAP_LO_SCTP_COMM_UP,
+    MME_EVENT_LCSAP_LO_CONNREFUSED,
+
     MME_EVENT_GN_MESSAGE,
     MME_EVENT_GN_TIMER,
 
@@ -66,6 +71,7 @@ typedef struct ogs_nas_eps_message_s ogs_nas_eps_message_t;
 typedef struct ogs_diam_s6a_message_s ogs_diam_s6a_message_t;
 typedef struct ogs_diam_s13_message_s ogs_diam_s13_message_t;
 typedef struct mme_vlr_s mme_vlr_t;
+typedef struct mme_esmlc_s mme_esmlc_t;
 typedef struct mme_enb_s mme_enb_t;
 typedef struct enb_ue_s enb_ue_t;
 typedef struct sgw_ue_s sgw_ue_t;
@@ -100,6 +106,7 @@ typedef struct mme_event_s {
     uint32_t eir_check_id;
 
     mme_vlr_t *vlr;
+    mme_esmlc_t *esmlc;
     ogs_pool_id_t enb_id;
     ogs_pool_id_t enb_ue_id;
     ogs_pool_id_t sgw_ue_id;

@@ -36,6 +36,7 @@
 #include "mme-s13-handler.h"
 #include "mme-path.h"
 #include "mme-dns.h"
+#include "lcsap-path.h"
 
 void mme_state_initial(ogs_fsm_t *s, mme_event_t *e)
 {
@@ -86,6 +87,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     ogs_gtp1_message_t gtp1_message;
 
     mme_vlr_t *vlr = NULL;
+    mme_esmlc_t *esmlc = NULL;
 
     ogs_assert(e);
     mme_sm_debug(e);
@@ -1190,6 +1192,38 @@ cleanup:
         ogs_assert(OGS_FSM_STATE(&vlr->sm));
 
         ogs_fsm_dispatch(&vlr->sm, e);
+        break;
+
+    case MME_EVENT_LCSAP_LO_SCTP_COMM_UP:
+        sock = e->sock;
+        ogs_assert(sock);
+        esmlc = mme_esmlc_find_by_sock(sock);
+        ogs_assert(esmlc);
+        e->esmlc = esmlc;
+        ogs_fsm_dispatch(&esmlc->sm, e);
+        break;
+
+    case MME_EVENT_LCSAP_LO_CONNREFUSED:
+    case MME_EVENT_LCSAP_MESSAGE:
+        sock = e->sock;
+        ogs_assert(sock);
+        esmlc = mme_esmlc_find_by_sock(sock);
+        if (!esmlc) {
+            ogs_warn("LCS-AP event for removed E-SMLC peer");
+            if (e->pkbuf)
+                ogs_pkbuf_free(e->pkbuf);
+            break;
+        }
+        e->esmlc = esmlc;
+        ogs_fsm_dispatch(&esmlc->sm, e);
+        if (e->pkbuf)
+            ogs_pkbuf_free(e->pkbuf);
+        break;
+
+    case MME_EVENT_LCSAP_TIMER:
+        esmlc = e->esmlc;
+        ogs_assert(esmlc);
+        ogs_fsm_dispatch(&esmlc->sm, e);
         break;
 
     default:

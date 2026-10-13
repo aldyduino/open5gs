@@ -809,3 +809,37 @@ ogs_pkbuf_t *emm_build_downlink_nas_transport(
 
     return nas_eps_security_encode(mme_ue, &message);
 }
+
+ogs_pkbuf_t *emm_build_downlink_generic_nas_transport(
+        mme_ue_t *mme_ue, const uint8_t *buffer, size_t length)
+{
+    ogs_nas_eps_message_t message;
+    ogs_nas_generic_message_container_t *container =
+        &message.emm.downlink_generic_nas_transport.generic_message_container;
+    ogs_pkbuf_t *pkbuf = NULL;
+
+    ogs_assert(mme_ue);
+    if (!buffer || !length || length > UINT16_MAX) {
+        ogs_error("Invalid LPP NAS payload length[%zu]", length);
+        return NULL;
+    }
+
+    memset(&message, 0, sizeof(message));
+    message.h.security_header_type =
+        OGS_NAS_SECURITY_HEADER_INTEGRITY_PROTECTED_AND_CIPHERED;
+    message.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
+    message.emm.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
+    message.emm.h.message_type = OGS_NAS_EPS_DOWNLINK_GENERIC_NAS_TRANSPORT;
+    message.emm.downlink_generic_nas_transport.generic_message_container_type =
+        OGS_NAS_GENERIC_MESSAGE_CONTAINER_TYPE_LTE_POSITIONING_PROTOCOL;
+
+    container->length = length;
+    container->buffer = ogs_malloc(length);
+    if (!container->buffer)
+        return NULL;
+    memcpy(container->buffer, buffer, length);
+
+    pkbuf = nas_eps_security_encode(mme_ue, &message);
+    ogs_free(container->buffer);
+    return pkbuf;
+}

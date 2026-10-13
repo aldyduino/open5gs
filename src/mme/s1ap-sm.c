@@ -96,6 +96,9 @@ void s1ap_state_operational(ogs_fsm_t *s, mme_event_t *e)
             case S1AP_ProcedureCode_id_uplinkNASTransport :
                 s1ap_handle_uplink_nas_transport(enb, pdu);
                 break;
+            case S1AP_ProcedureCode_id_uplinkUEAssociatedLPPaTransport:
+                s1ap_handle_uplink_ue_associated_lppa_transport(enb, pdu);
+                break;
             case S1AP_ProcedureCode_id_UECapabilityInfoIndication :
                 s1ap_handle_ue_capability_info_indication(enb, pdu);
                 break;

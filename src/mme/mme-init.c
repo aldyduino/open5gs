@@ -28,6 +28,7 @@
 #include "mme-fd-path.h"
 #include "s1ap-path.h"
 #include "sgsap-path.h"
+#include "lcsap-path.h"
 #include "mme-gtp-path.h"
 #include "mme-dns.h"
 #include "metrics.h"
@@ -87,6 +88,9 @@ int mme_initialize(void)
     rv = sgsap_open();
     if (rv != OGS_OK) return OGS_ERROR;
 
+    rv = lcsap_open();
+    if (rv != OGS_OK) return OGS_ERROR;
+
     rv = s1ap_open();
     if (rv != OGS_OK) return OGS_ERROR;
 
@@ -108,6 +112,7 @@ void mme_terminate(void)
 
     mme_dns_close();
     mme_gtp_close();
+    lcsap_close();
     sgsap_close();
     s1ap_close();
 

@@ -100,6 +100,7 @@ typedef struct mme_context_s {
 
     uint16_t        s1ap_port;      /* Default S1AP Port */
     uint16_t        sgsap_port;     /* Default SGsAP Port */
+    uint16_t        lcsap_port;     /* Default LCS-AP Port */
 
     ogs_list_t      s1ap_list;      /* MME S1AP IPv4 Server List */
     ogs_list_t      s1ap_list6;     /* MME S1AP IPv6 Server List */
@@ -132,6 +133,7 @@ typedef struct mme_context_s {
     ogs_list_t      enb_list;       /* ENB S1AP Client List */
 
     ogs_list_t      vlr_list;       /* VLR SGsAP Client List */
+    ogs_list_t      esmlc_list;     /* E-SMLC LCS-AP Client List */
     ogs_list_t      csmap_list;     /* TAI-LAI Map List */
     ogs_list_t      hssmap_list;    /* PLMN HSS Map List */
 
@@ -269,6 +271,20 @@ typedef struct mme_vlr_s {
     ogs_poll_t      *poll;      /* VLR SGsAP Poll */
 } mme_vlr_t;
 
+typedef struct mme_esmlc_s {
+    ogs_lnode_t     lnode;
+
+    ogs_fsm_t       sm;
+    ogs_timer_t     *t_conn;
+
+    ogs_sockaddr_t  *sa_list;
+    ogs_sockaddr_t  *local_sa_list;
+
+    ogs_sock_t      *sock;
+    ogs_sockopt_t   *option;
+    ogs_poll_t      *poll;
+} mme_esmlc_t;
+
 typedef struct mme_csmap_s {
     ogs_lnode_t     lnode;
 
@@ -336,6 +352,8 @@ struct enb_ue_s {
 #define INVALID_UE_S1AP_ID      0xffffffff /* Initial value of enb_ue_s1ap_id */
     uint32_t        enb_ue_s1ap_id; /* eNB-UE-S1AP-ID received from eNB */
     uint32_t        mme_ue_s1ap_id; /* MME-UE-S1AP-ID received from MME */
+    bool            lppa_routing_id_presence;
+    uint8_t         lppa_routing_id;
 
     uint16_t        enb_ostream_id; /* SCTP output stream id for eNB */
 
@@ -1230,6 +1248,13 @@ void mme_vlr_remove(mme_vlr_t *vlr);
 void mme_vlr_remove_all(void);
 void mme_vlr_close(mme_vlr_t *vlr);
 mme_vlr_t *mme_vlr_find_by_sock(const ogs_sock_t *sock);
+
+mme_esmlc_t *mme_esmlc_add(
+    ogs_sockaddr_t *sa_list, ogs_sockaddr_t *local_sa_list);
+void mme_esmlc_remove(mme_esmlc_t *esmlc);
+void mme_esmlc_remove_all(void);
+void mme_esmlc_close(mme_esmlc_t *esmlc);
+mme_esmlc_t *mme_esmlc_find_by_sock(const ogs_sock_t *sock);
 
 mme_csmap_t *mme_csmap_add(mme_vlr_t *vlr);
 void mme_csmap_remove(mme_csmap_t *csmap);

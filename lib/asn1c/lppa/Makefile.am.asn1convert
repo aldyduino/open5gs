@@ -1,0 +1,14 @@
+include Makefile.am.libasncodec
+
+bin_PROGRAMS += asn1convert
+asn1convert_CFLAGS = $(ASN_MODULE_CFLAGS) -DASN_DISABLE_BER_SUPPORT -DASN_DISABLE_XER_SUPPORT -DASN_DISABLE_OER_SUPPORT -DASN_DISABLE_UPER_SUPPORT -DASN_DISABLE_JER_SUPPORT -DASN_DISABLE_CBOR_SUPPORT 
+asn1convert_CPPFLAGS = -I$(top_srcdir)/-DASN_PDU_COLLECTION 
+asn1convert_LDADD = libasncodec.la
+asn1convert_SOURCES = \
+	converter-example.c\
+	pdu_collection.c
+regen: regenerate-from-asn1-source
+
+regenerate-from-asn1-source:
+	asn1c -pdu=all -fprefix=LPPA_ -fcompound-names -findirect-choice -fno-include-deps -no-gen-BER -no-gen-XER -no-gen-JER -no-gen-CBOR -no-gen-OER -no-gen-UPER ../support/lppa-r17/LPPA-CommonDataTypes.asn ../support/lppa-r17/LPPA-Constants.asn ../support/lppa-r17/LPPA-Containers.asn ../support/lppa-r17/LPPA-IEs.asn ../support/lppa-r17/LPPA-PDU-Contents.asn ../support/lppa-r17/LPPA-PDU-Descriptions.asn
+

@@ -85,6 +85,10 @@ libasn1c_common_sources = files('''
     per_decoder.c
     per_encoder.c
     per_support.c
+    ../lpp/uper_decoder.h
+    ../lpp/uper_encoder.h
+    ../lpp/uper_support.h
+    ../lpp/uper_opentype.h
     per_opentype.c
     aper_decoder.h
     aper_encoder.h
@@ -97,6 +101,24 @@ libasn1c_common_sources = files('''
     ANY_aper.c
     ENUMERATED_aper.c
     INTEGER_aper.c
+        ../lpp/uper_decoder.c
+        ../lpp/uper_encoder.c
+        ../lpp/uper_support.c
+        ../lpp/uper_opentype.c
+        ../lpp/ANY_uper.c
+        ../lpp/BIT_STRING_uper.c
+        ../lpp/BOOLEAN_uper.c
+        ../lpp/ENUMERATED_uper.c
+        ../lpp/INTEGER_uper.c
+        ../lpp/NULL_uper.c
+        ../lpp/NativeEnumerated_uper.c
+        ../lpp/NativeInteger_uper.c
+        ../lpp/OCTET_STRING_uper.c
+        ../lpp/OPEN_TYPE_uper.c
+        ../lpp/constr_CHOICE_uper.c
+        ../lpp/constr_SEQUENCE_OF_uper.c
+        ../lpp/constr_SEQUENCE_uper.c
+        ../lpp/constr_SET_OF_uper.c
     NULL_aper.c
     NativeEnumerated_aper.c
     NativeInteger_aper.c
@@ -120,6 +142,19 @@ libasn1c_common_sources = files('''
     asn_random_fill.h
     asn_random_fill.c
     BIT_STRING_rfill.c
+    ../lcsap/BOOLEAN.h
+    ../lcsap/BOOLEAN.c
+    ../lcsap/BOOLEAN_aper.c
+    ../lcsap/BOOLEAN_print.c
+    ../lcsap/BOOLEAN_rfill.c
+        ../lpp/GeneralizedTime.h
+        ../lpp/GeneralizedTime.c
+        ../lpp/GeneralizedTime_print.c
+        ../lpp/GeneralizedTime_rfill.c
+        ../lpp/UTCTime.h
+        ../lpp/UTCTime.c
+        ../lpp/UTCTime_print.c
+        ../lpp/UTCTime_rfill.c
     INTEGER_rfill.c
     NULL_rfill.c
     NativeInteger_rfill.c
@@ -134,7 +169,6 @@ libasn1c_common_sources = files('''
 libasn1c_common_cc_flags = ['-DASN_DISABLE_BER_SUPPORT',
                             '-DASN_DISABLE_XER_SUPPORT',
                             '-DASN_DISABLE_OER_SUPPORT',
-                            '-DASN_DISABLE_UPER_SUPPORT',
                             '-DASN_DISABLE_JER_SUPPORT',
                             '-DASN_DISABLE_CBOR_SUPPORT']
 
@@ -158,16 +192,22 @@ libasn1c_common_cc_flags += cc.get_supported_arguments([
 ])
 
 libasn1c_common_inc = include_directories('.')
+libasn1c_lcsap_boolean_inc = include_directories('../lcsap')
+libasn1c_lpp_runtime_inc = include_directories('../lpp')
 
 libasn1c_common = library('ogsasn1c-common',
     sources : libasn1c_common_sources,
     version : libogslib_version,
     c_args : libasn1c_common_cc_flags,
-    include_directories : libasn1c_common_inc,
+    include_directories : [libasn1c_common_inc,
+                           libasn1c_lcsap_boolean_inc,
+                           libasn1c_lpp_runtime_inc],
     dependencies : libcore_dep,
     install : true)
 
 libasn1c_common_dep = declare_dependency(
     link_with : libasn1c_common,
-    include_directories : libasn1c_common_inc,
+    include_directories : [libasn1c_common_inc,
+                           libasn1c_lcsap_boolean_inc,
+                           libasn1c_lpp_runtime_inc],
     dependencies : libcore_dep)

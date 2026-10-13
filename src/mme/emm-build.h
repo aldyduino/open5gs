@@ -50,6 +50,8 @@ ogs_pkbuf_t *emm_build_service_reject(
 ogs_pkbuf_t *emm_build_cs_service_notification(mme_ue_t *mme_ue);
 ogs_pkbuf_t *emm_build_downlink_nas_transport(
         mme_ue_t *mme_ue, uint8_t *buffer, uint8_t length);
+ogs_pkbuf_t *emm_build_downlink_generic_nas_transport(
+        mme_ue_t *mme_ue, const uint8_t *buffer, size_t length);
 
 #ifdef __cplusplus
 }

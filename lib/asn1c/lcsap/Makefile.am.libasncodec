@@ -1,0 +1,392 @@
+ASN_MODULE_SRCS=	\
+	LCSAP_Criticality.c	\
+	LCSAP_Presence.c	\
+	LCSAP_ProcedureCode.c	\
+	LCSAP_ProtocolExtensionID.c	\
+	LCSAP_ProtocolIE-ID.c	\
+	LCSAP_TriggeringMessage.c	\
+	LCSAP_ProtocolIE-Container.c	\
+	LCSAP_ProtocolIE-Field.c	\
+	LCSAP_ProtocolIE-ContainerList.c	\
+	LCSAP_ProtocolExtensionContainer.c	\
+	LCSAP_ProtocolExtensionField.c	\
+	LCSAP_APDU.c	\
+	LCSAP_Accuracy-Fulfillment-Indicator.c	\
+	LCSAP_Additional-PositioningDataSet.c	\
+	LCSAP_Additional-PositioningMethodAndUsage.c	\
+	LCSAP_Altitude.c	\
+	LCSAP_Altitude-And-Direction.c	\
+	LCSAP_Angle.c	\
+	LCSAP_Barometric-Pressure.c	\
+	LCSAP_Bearing.c	\
+	LCSAP_C0.c	\
+	LCSAP_CellIdentity.c	\
+	LCSAP_Cell-Portion-ID.c	\
+	LCSAP_Ciphering-Data.c	\
+	LCSAP_Ciphering-Data-Ack.c	\
+	LCSAP_Ciphering-Data-Error-Report.c	\
+	LCSAP_Ciphering-Data-Set.c	\
+	LCSAP_Ciphering-Data-Error-Report-Contents.c	\
+	LCSAP_Ciphering-Set-ID.c	\
+	LCSAP_Ciphering-Key.c	\
+	LCSAP_Civic-Address.c	\
+	LCSAP_Confidence.c	\
+	LCSAP_Correlation-ID.c	\
+	LCSAP_Country.c	\
+	LCSAP_DegreesLatitude.c	\
+	LCSAP_DegreesLongitude.c	\
+	LCSAP_Direction-Of-Altitude.c	\
+	LCSAP_E-CGI.c	\
+	LCSAP_Coverage-Level.c	\
+	LCSAP_Ellipsoid-Point-With-Uncertainty-Ellipse.c	\
+	LCSAP_Ellipsoid-Point-With-Altitude.c	\
+	LCSAP_Ellipsoid-Point-With-Altitude-And-Uncertainty-Ellipsoid.c	\
+	LCSAP_Ellipsoid-Arc.c	\
+	LCSAP_ENB-ID.c	\
+	LCSAP_E-SMLC-ID.c	\
+	LCSAP_Geographical-Area.c	\
+	LCSAP_Geographical-Coordinates.c	\
+	LCSAP_Global-eNB-ID.c	\
+	LCSAP_GNSS-Positioning-Method-And-Usage.c	\
+	LCSAP_GNSS-Positioning-Data-Set.c	\
+	LCSAP_High-Accuracy-Altitude.c	\
+	LCSAP_High-Accuracy-DegreesLatitude.c	\
+	LCSAP_High-Accuracy-DegreesLongitude.c	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Uncertainty-Ellipse.c	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Scalable-Uncertainty-Ellipse.c	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Altitude-And-Uncertainty-Ellipsoid.c	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Altitude-And-Scalable-Uncertainty-Ellipsoid.c	\
+	LCSAP_High-Accuracy-Geographical-Coordinates.c	\
+	LCSAP_High-Accuracy-Uncertainty-Code.c	\
+	LCSAP_High-Accuracy-Extended-Uncertainty-Code.c	\
+	LCSAP_High-Accuracy-Uncertainty-Ellipse.c	\
+	LCSAP_High-Accuracy-Extended-Uncertainty-Ellipse.c	\
+	LCSAP_High-Accuracy-Scalable-Uncertainty-Ellipse.c	\
+	LCSAP_High-Accuracy-Scalable-Uncertainty-Altitude.c	\
+	LCSAP_Home-eNB-ID.c	\
+	LCSAP_Horizontal-Accuracy.c	\
+	LCSAP_Horizontal-Speed-And-Bearing.c	\
+	LCSAP_Horizontal-Velocity.c	\
+	LCSAP_Horizontal-With-Vertical-Velocity.c	\
+	LCSAP_Horizontal-Velocity-With-Uncertainty.c	\
+	LCSAP_Horizontal-With-Vertical-Velocity-And-Uncertainty.c	\
+	LCSAP_IMSI.c	\
+	LCSAP_IMEI.c	\
+	LCSAP_Include-Velocity.c	\
+	LCSAP_Inner-Radius.c	\
+	LCSAP_International-Area-Indication.c	\
+	LCSAP_LatitudeSign.c	\
+	LCSAP_Location-Type.c	\
+	LCSAP_LCS-Cause.c	\
+	LCSAP_LCS-Client-Type.c	\
+	LCSAP_LCS-Priority.c	\
+	LCSAP_LCS-QoS.c	\
+	LCSAP_LCS-Service-Type-ID.c	\
+	LCSAP_Long-Macro-eNB-ID.c	\
+	LCSAP_Macro-eNB-ID.c	\
+	LCSAP_Message-Identifier.c	\
+	LCSAP_Misc-Cause.c	\
+	LCSAP_MultipleAPDUs.c	\
+	LCSAP_Network-Element.c	\
+	LCSAP_Orientation-Major-Axis.c	\
+	LCSAP_Payload-Type.c	\
+	LCSAP_PLMN-ID.c	\
+	LCSAP_Point.c	\
+	LCSAP_Point-With-Uncertainty.c	\
+	LCSAP_Polygon.c	\
+	LCSAP_Polygon-Point.c	\
+	LCSAP_Positioning-Data.c	\
+	LCSAP_Positioning-Data-Set.c	\
+	LCSAP_Positioning-Method-And-Usage.c	\
+	LCSAP_Protocol-Cause.c	\
+	LCSAP_Radio-Network-Layer-Cause.c	\
+	LCSAP_RAT-Type.c	\
+	LCSAP_Response-Time.c	\
+	LCSAP_Return-Error-Type.c	\
+	LCSAP_Return-Error-Cause.c	\
+	LCSAP_Short-Macro-eNB-ID.c	\
+	LCSAP_SIB-Types.c	\
+	LCSAP_Storage-Outcome.c	\
+	LCSAP_TAIs-List.c	\
+	LCSAP_TBCD-STRING.c	\
+	LCSAP_Transport-Layer-Cause.c	\
+	LCSAP_Uncertainty-Altitude.c	\
+	LCSAP_Uncertainty-Code.c	\
+	LCSAP_Uncertainty-Ellipse.c	\
+	LCSAP_UE-Positioning-Capability.c	\
+	LCSAP_UE-Country-Determination-Indication.c	\
+	LCSAP_UE-Area-Indication.c	\
+	LCSAP_Validity-Duration.c	\
+	LCSAP_Validity-Start-Time.c	\
+	LCSAP_Velocity-Estimate.c	\
+	LCSAP_Vertical-Requested.c	\
+	LCSAP_Vertical-Accuracy.c	\
+	LCSAP_Vertical-Velocity.c	\
+	LCSAP_Vertical-Speed-Direction.c	\
+	LCSAP_Location-Request.c	\
+	LCSAP_Location-Response.c	\
+	LCSAP_Location-Abort-Request.c	\
+	LCSAP_Connection-Oriented-Information.c	\
+	LCSAP_Connectionless-Information.c	\
+	LCSAP_Reset-Request.c	\
+	LCSAP_Reset-Acknowledge.c	\
+	LCSAP_Ciphering-Key-Data.c	\
+	LCSAP_Ciphering-Key-Data-Result.c	\
+	LCSAP_LCS-AP-PDU.c	\
+	LCSAP_InitiatingMessage.c	\
+	LCSAP_SuccessfulOutcome.c	\
+	LCSAP_UnsuccessfulOutcome.c	\
+	LCSAP_EXTERNAL.c
+
+ASN_MODULE_HDRS=	\
+	LCSAP_Criticality.h	\
+	LCSAP_Presence.h	\
+	LCSAP_ProcedureCode.h	\
+	LCSAP_ProtocolExtensionID.h	\
+	LCSAP_ProtocolIE-ID.h	\
+	LCSAP_TriggeringMessage.h	\
+	LCSAP_ProtocolIE-Container.h	\
+	LCSAP_ProtocolIE-Field.h	\
+	LCSAP_ProtocolIE-ContainerList.h	\
+	LCSAP_ProtocolExtensionContainer.h	\
+	LCSAP_ProtocolExtensionField.h	\
+	LCSAP_APDU.h	\
+	LCSAP_Accuracy-Fulfillment-Indicator.h	\
+	LCSAP_Additional-PositioningDataSet.h	\
+	LCSAP_Additional-PositioningMethodAndUsage.h	\
+	LCSAP_Altitude.h	\
+	LCSAP_Altitude-And-Direction.h	\
+	LCSAP_Angle.h	\
+	LCSAP_Barometric-Pressure.h	\
+	LCSAP_Bearing.h	\
+	LCSAP_C0.h	\
+	LCSAP_CellIdentity.h	\
+	LCSAP_Cell-Portion-ID.h	\
+	LCSAP_Ciphering-Data.h	\
+	LCSAP_Ciphering-Data-Ack.h	\
+	LCSAP_Ciphering-Data-Error-Report.h	\
+	LCSAP_Ciphering-Data-Set.h	\
+	LCSAP_Ciphering-Data-Error-Report-Contents.h	\
+	LCSAP_Ciphering-Set-ID.h	\
+	LCSAP_Ciphering-Key.h	\
+	LCSAP_Civic-Address.h	\
+	LCSAP_Confidence.h	\
+	LCSAP_Correlation-ID.h	\
+	LCSAP_Country.h	\
+	LCSAP_DegreesLatitude.h	\
+	LCSAP_DegreesLongitude.h	\
+	LCSAP_Direction-Of-Altitude.h	\
+	LCSAP_E-CGI.h	\
+	LCSAP_Coverage-Level.h	\
+	LCSAP_Ellipsoid-Point-With-Uncertainty-Ellipse.h	\
+	LCSAP_Ellipsoid-Point-With-Altitude.h	\
+	LCSAP_Ellipsoid-Point-With-Altitude-And-Uncertainty-Ellipsoid.h	\
+	LCSAP_Ellipsoid-Arc.h	\
+	LCSAP_ENB-ID.h	\
+	LCSAP_E-SMLC-ID.h	\
+	LCSAP_Geographical-Area.h	\
+	LCSAP_Geographical-Coordinates.h	\
+	LCSAP_Global-eNB-ID.h	\
+	LCSAP_GNSS-Positioning-Method-And-Usage.h	\
+	LCSAP_GNSS-Positioning-Data-Set.h	\
+	LCSAP_High-Accuracy-Altitude.h	\
+	LCSAP_High-Accuracy-DegreesLatitude.h	\
+	LCSAP_High-Accuracy-DegreesLongitude.h	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Uncertainty-Ellipse.h	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Scalable-Uncertainty-Ellipse.h	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Altitude-And-Uncertainty-Ellipsoid.h	\
+	LCSAP_High-Accuracy-Ellipsoid-Point-With-Altitude-And-Scalable-Uncertainty-Ellipsoid.h	\
+	LCSAP_High-Accuracy-Geographical-Coordinates.h	\
+	LCSAP_High-Accuracy-Uncertainty-Code.h	\
+	LCSAP_High-Accuracy-Extended-Uncertainty-Code.h	\
+	LCSAP_High-Accuracy-Uncertainty-Ellipse.h	\
+	LCSAP_High-Accuracy-Extended-Uncertainty-Ellipse.h	\
+	LCSAP_High-Accuracy-Scalable-Uncertainty-Ellipse.h	\
+	LCSAP_High-Accuracy-Scalable-Uncertainty-Altitude.h	\
+	LCSAP_Home-eNB-ID.h	\
+	LCSAP_Horizontal-Accuracy.h	\
+	LCSAP_Horizontal-Speed-And-Bearing.h	\
+	LCSAP_Horizontal-Velocity.h	\
+	LCSAP_Horizontal-With-Vertical-Velocity.h	\
+	LCSAP_Horizontal-Velocity-With-Uncertainty.h	\
+	LCSAP_Horizontal-With-Vertical-Velocity-And-Uncertainty.h	\
+	LCSAP_IMSI.h	\
+	LCSAP_IMEI.h	\
+	LCSAP_Include-Velocity.h	\
+	LCSAP_Inner-Radius.h	\
+	LCSAP_International-Area-Indication.h	\
+	LCSAP_LatitudeSign.h	\
+	LCSAP_Location-Type.h	\
+	LCSAP_LCS-Cause.h	\
+	LCSAP_LCS-Client-Type.h	\
+	LCSAP_LCS-Priority.h	\
+	LCSAP_LCS-QoS.h	\
+	LCSAP_LCS-Service-Type-ID.h	\
+	LCSAP_Long-Macro-eNB-ID.h	\
+	LCSAP_Macro-eNB-ID.h	\
+	LCSAP_Message-Identifier.h	\
+	LCSAP_Misc-Cause.h	\
+	LCSAP_MultipleAPDUs.h	\
+	LCSAP_Network-Element.h	\
+	LCSAP_Orientation-Major-Axis.h	\
+	LCSAP_Payload-Type.h	\
+	LCSAP_PLMN-ID.h	\
+	LCSAP_Point.h	\
+	LCSAP_Point-With-Uncertainty.h	\
+	LCSAP_Polygon.h	\
+	LCSAP_Polygon-Point.h	\
+	LCSAP_Positioning-Data.h	\
+	LCSAP_Positioning-Data-Set.h	\
+	LCSAP_Positioning-Method-And-Usage.h	\
+	LCSAP_Protocol-Cause.h	\
+	LCSAP_Radio-Network-Layer-Cause.h	\
+	LCSAP_RAT-Type.h	\
+	LCSAP_Response-Time.h	\
+	LCSAP_Return-Error-Type.h	\
+	LCSAP_Return-Error-Cause.h	\
+	LCSAP_Short-Macro-eNB-ID.h	\
+	LCSAP_SIB-Types.h	\
+	LCSAP_Storage-Outcome.h	\
+	LCSAP_TAIs-List.h	\
+	LCSAP_TBCD-STRING.h	\
+	LCSAP_Transport-Layer-Cause.h	\
+	LCSAP_Uncertainty-Altitude.h	\
+	LCSAP_Uncertainty-Code.h	\
+	LCSAP_Uncertainty-Ellipse.h	\
+	LCSAP_UE-Positioning-Capability.h	\
+	LCSAP_UE-Country-Determination-Indication.h	\
+	LCSAP_UE-Area-Indication.h	\
+	LCSAP_Validity-Duration.h	\
+	LCSAP_Validity-Start-Time.h	\
+	LCSAP_Velocity-Estimate.h	\
+	LCSAP_Vertical-Requested.h	\
+	LCSAP_Vertical-Accuracy.h	\
+	LCSAP_Vertical-Velocity.h	\
+	LCSAP_Vertical-Speed-Direction.h	\
+	LCSAP_Location-Request.h	\
+	LCSAP_Location-Response.h	\
+	LCSAP_Location-Abort-Request.h	\
+	LCSAP_Connection-Oriented-Information.h	\
+	LCSAP_Connectionless-Information.h	\
+	LCSAP_Reset-Request.h	\
+	LCSAP_Reset-Acknowledge.h	\
+	LCSAP_Ciphering-Key-Data.h	\
+	LCSAP_Ciphering-Key-Data-Result.h	\
+	LCSAP_LCS-AP-PDU.h	\
+	LCSAP_InitiatingMessage.h	\
+	LCSAP_SuccessfulOutcome.h	\
+	LCSAP_UnsuccessfulOutcome.h	\
+	LCSAP_EXTERNAL.h
+
+ASN_MODULE_HDRS+=ANY.h
+ASN_MODULE_SRCS+=ANY.c
+ASN_MODULE_HDRS+=OCTET_STRING.h
+ASN_MODULE_HDRS+=OPEN_TYPE.h
+ASN_MODULE_SRCS+=OPEN_TYPE.c
+ASN_MODULE_HDRS+=constr_CHOICE.h
+ASN_MODULE_HDRS+=BOOLEAN.h
+ASN_MODULE_SRCS+=BOOLEAN.c
+ASN_MODULE_HDRS+=ENUMERATED.h
+ASN_MODULE_SRCS+=ENUMERATED.c
+ASN_MODULE_HDRS+=INTEGER.h
+ASN_MODULE_HDRS+=NativeEnumerated.h
+ASN_MODULE_HDRS+=GraphicString.h
+ASN_MODULE_SRCS+=GraphicString.c
+ASN_MODULE_SRCS+=INTEGER.c
+ASN_MODULE_SRCS+=NativeEnumerated.c
+ASN_MODULE_HDRS+=NativeInteger.h
+ASN_MODULE_SRCS+=NativeInteger.c
+ASN_MODULE_HDRS+=OBJECT_IDENTIFIER.h
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER.c
+ASN_MODULE_HDRS+=asn_codecs_prim.h
+ASN_MODULE_HDRS+=ObjectDescriptor.h
+ASN_MODULE_SRCS+=ObjectDescriptor.c
+ASN_MODULE_HDRS+=asn_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=asn_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=asn_SET_OF.h
+ASN_MODULE_SRCS+=asn_SET_OF.c
+ASN_MODULE_SRCS+=constr_CHOICE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE.h
+ASN_MODULE_SRCS+=constr_SEQUENCE.c
+ASN_MODULE_HDRS+=constr_SEQUENCE_OF.h
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF.c
+ASN_MODULE_HDRS+=constr_SET_OF.h
+ASN_MODULE_SRCS+=constr_SET_OF.c
+ASN_MODULE_HDRS+=asn_application.h
+ASN_MODULE_SRCS+=asn_application.c
+ASN_MODULE_HDRS+=asn_ioc.h
+ASN_MODULE_HDRS+=asn_system.h
+ASN_MODULE_HDRS+=asn_codecs.h
+ASN_MODULE_HDRS+=asn_internal.h
+ASN_MODULE_SRCS+=asn_internal.c
+ASN_MODULE_HDRS+=asn_bit_data.h
+ASN_MODULE_SRCS+=asn_bit_data.c
+ASN_MODULE_SRCS+=OCTET_STRING.c
+ASN_MODULE_HDRS+=BIT_STRING.h
+ASN_MODULE_SRCS+=BIT_STRING.c
+ASN_MODULE_SRCS+=asn_codecs_prim.c
+ASN_MODULE_HDRS+=ber_tlv_length.h
+ASN_MODULE_SRCS+=ber_tlv_length.c
+ASN_MODULE_HDRS+=ber_tlv_tag.h
+ASN_MODULE_SRCS+=ber_tlv_tag.c
+ASN_MODULE_HDRS+=constr_TYPE.h
+ASN_MODULE_SRCS+=constr_TYPE.c
+ASN_MODULE_HDRS+=constraints.h
+ASN_MODULE_SRCS+=constraints.c
+ASN_MODULE_HDRS+=per_decoder.h
+ASN_MODULE_HDRS+=per_encoder.h
+ASN_MODULE_HDRS+=per_support.h
+ASN_MODULE_HDRS+=per_opentype.h
+ASN_MODULE_SRCS+=per_decoder.c
+ASN_MODULE_SRCS+=per_encoder.c
+ASN_MODULE_SRCS+=per_support.c
+ASN_MODULE_SRCS+=per_opentype.c
+ASN_MODULE_HDRS+=aper_decoder.h
+ASN_MODULE_HDRS+=aper_encoder.h
+ASN_MODULE_HDRS+=aper_support.h
+ASN_MODULE_HDRS+=aper_opentype.h
+ASN_MODULE_SRCS+=aper_decoder.c
+ASN_MODULE_SRCS+=aper_encoder.c
+ASN_MODULE_SRCS+=aper_support.c
+ASN_MODULE_SRCS+=aper_opentype.c
+ASN_MODULE_SRCS+=ANY_aper.c
+ASN_MODULE_SRCS+=BOOLEAN_aper.c
+ASN_MODULE_SRCS+=ENUMERATED_aper.c
+ASN_MODULE_SRCS+=INTEGER_aper.c
+ASN_MODULE_SRCS+=NativeEnumerated_aper.c
+ASN_MODULE_SRCS+=NativeInteger_aper.c
+ASN_MODULE_SRCS+=OCTET_STRING_aper.c
+ASN_MODULE_SRCS+=OPEN_TYPE_aper.c
+ASN_MODULE_SRCS+=constr_CHOICE_aper.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_OF_aper.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_aper.c
+ASN_MODULE_SRCS+=constr_SET_OF_aper.c
+ASN_MODULE_SRCS+=BIT_STRING_print.c
+ASN_MODULE_SRCS+=BOOLEAN_print.c
+ASN_MODULE_SRCS+=INTEGER_print.c
+ASN_MODULE_SRCS+=NativeInteger_print.c
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER_print.c
+ASN_MODULE_SRCS+=OCTET_STRING_print.c
+ASN_MODULE_SRCS+=OPEN_TYPE_print.c
+ASN_MODULE_SRCS+=constr_CHOICE_print.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_print.c
+ASN_MODULE_SRCS+=constr_SET_OF_print.c
+ASN_MODULE_HDRS+=asn_random_fill.h
+ASN_MODULE_SRCS+=asn_random_fill.c
+ASN_MODULE_SRCS+=BIT_STRING_rfill.c
+ASN_MODULE_SRCS+=BOOLEAN_rfill.c
+ASN_MODULE_SRCS+=INTEGER_rfill.c
+ASN_MODULE_SRCS+=NativeInteger_rfill.c
+ASN_MODULE_SRCS+=OBJECT_IDENTIFIER_rfill.c
+ASN_MODULE_SRCS+=OCTET_STRING_rfill.c
+ASN_MODULE_SRCS+=constr_CHOICE_rfill.c
+ASN_MODULE_SRCS+=constr_SEQUENCE_rfill.c
+ASN_MODULE_SRCS+=constr_SET_OF_rfill.c
+
+ASN_MODULE_CFLAGS=-DASN_DISABLE_BER_SUPPORT -DASN_DISABLE_XER_SUPPORT -DASN_DISABLE_OER_SUPPORT -DASN_DISABLE_UPER_SUPPORT -DASN_DISABLE_JER_SUPPORT -DASN_DISABLE_CBOR_SUPPORT 
+
+lib_LTLIBRARIES+=libasncodec.la
+libasncodec_la_SOURCES=$(ASN_MODULE_SRCS) $(ASN_MODULE_HDRS)
+libasncodec_la_CPPFLAGS=-I$(top_srcdir)/
+libasncodec_la_CFLAGS=$(ASN_MODULE_CFLAGS)
+libasncodec_la_LDFLAGS=-lm

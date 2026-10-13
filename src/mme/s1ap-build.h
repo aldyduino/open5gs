@@ -38,6 +38,9 @@ ogs_pkbuf_t *s1ap_build_enb_configuration_update_failure(
 
 ogs_pkbuf_t *s1ap_build_downlink_nas_transport(
     enb_ue_t *enb_ue, ogs_pkbuf_t *emmbuf);
+ogs_pkbuf_t *s1ap_build_downlink_ue_associated_lppa_transport(
+    enb_ue_t *enb_ue, uint8_t routing_id,
+    const uint8_t *payload, size_t payload_len);
 
 ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
     mme_ue_t *mme_ue, ogs_pkbuf_t *emmbuf);
