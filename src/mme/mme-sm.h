@@ -84,6 +84,7 @@ void lcsap_state_initial(ogs_fsm_t *s, mme_event_t *e);
 void lcsap_state_final(ogs_fsm_t *s, mme_event_t *e);
 void lcsap_state_will_connect(ogs_fsm_t *s, mme_event_t *e);
 void lcsap_state_connected(ogs_fsm_t *s, mme_event_t *e);
+void lcsap_handle_slg_request(struct msg *request);
 
 #define mme_sm_debug(__pe) \
     ogs_debug("%s(): %s\n", __func__, mme_event_get_name(__pe))

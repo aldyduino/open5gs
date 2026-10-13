@@ -10,6 +10,8 @@ extern "C" {
 
 int lcsap_open(void);
 void lcsap_close(void);
+void lcsap_slg_init(void);
+void lcsap_slg_final(void);
 
 ogs_sock_t *lcsap_client(mme_esmlc_t *esmlc);
 void lcsap_event_push(mme_event_t *e);

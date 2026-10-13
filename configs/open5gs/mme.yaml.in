@@ -210,6 +210,9 @@ mme:
 #        port: 9082
 #        local_address: 127.0.0.2
 #
+# SLg GMLC peers are configured as freeDiameter peers in
+# configs/freeDiameter/mme.conf.in.
+#
 ################################################################################
 # SGaAP Server
 ################################################################################

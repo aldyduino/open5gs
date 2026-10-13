@@ -9,6 +9,8 @@ int lcsap_open(void)
 {
     mme_esmlc_t *esmlc = NULL;
 
+    lcsap_slg_init();
+
     ogs_list_for_each(&mme_self()->esmlc_list, esmlc) {
         mme_event_t e;
 
@@ -32,6 +34,8 @@ void lcsap_close(void)
         e.esmlc = esmlc;
         ogs_fsm_fini(&esmlc->sm, &e);
     }
+
+    lcsap_slg_final();
 }
 
 int lcsap_send(mme_esmlc_t *esmlc, ogs_pkbuf_t *pkbuf)

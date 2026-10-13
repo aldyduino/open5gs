@@ -841,6 +841,12 @@ cleanup:
         ogs_free(s13_message);
         break;
 
+    case MME_EVENT_SLG_MESSAGE:
+        ogs_assert(e->diameter_message);
+        lcsap_handle_slg_request(e->diameter_message);
+        e->diameter_message = NULL;
+        break;
+
     case MME_EVENT_S11_MESSAGE:
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);

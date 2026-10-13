@@ -25,6 +25,7 @@
 #include "ogs-s1ap.h"
 #include "ogs-diameter-s6a.h"
 #include "ogs-diameter-s13.h"
+#include "ogs-diameter-slg.h"
 #include "ogs-gtp.h"
 #include "ogs-nas-eps.h"
 #include "ogs-app.h"

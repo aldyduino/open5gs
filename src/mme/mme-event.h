@@ -45,6 +45,7 @@ typedef enum {
     MME_EVENT_S6A_MESSAGE,
     MME_EVENT_S6A_TIMER,
     MME_EVENT_S13_MESSAGE,
+    MME_EVENT_SLG_MESSAGE,
 
     MME_EVENT_SGSAP_MESSAGE,
     MME_EVENT_SGSAP_TIMER,
@@ -70,6 +71,7 @@ typedef struct S1AP_S1AP_PDU ogs_s1ap_message_t;
 typedef struct ogs_nas_eps_message_s ogs_nas_eps_message_t;
 typedef struct ogs_diam_s6a_message_s ogs_diam_s6a_message_t;
 typedef struct ogs_diam_s13_message_s ogs_diam_s13_message_t;
+struct msg;
 typedef struct mme_vlr_s mme_vlr_t;
 typedef struct mme_esmlc_s mme_esmlc_t;
 typedef struct mme_enb_s mme_enb_t;
@@ -103,6 +105,7 @@ typedef struct mme_event_s {
 
     ogs_diam_s6a_message_t *s6a_message;
     ogs_diam_s13_message_t *s13_message;
+    struct msg *diameter_message;
     uint32_t eir_check_id;
 
     mme_vlr_t *vlr;

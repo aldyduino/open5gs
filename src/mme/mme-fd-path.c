@@ -26,6 +26,7 @@ static struct disp_hdl *hdl_s6a_clr = NULL;
 
 /* handler for Insert-Subscriber-Data-Request cb */
 static struct disp_hdl *hdl_s6a_idr = NULL;
+static struct disp_hdl *hdl_slg_psl = NULL;
 
 static struct session_handler *mme_s6a_reg = NULL;
 static struct session_handler *mme_s13_reg = NULL;
@@ -46,6 +47,8 @@ struct sess_state {
 static void mme_s6a_aia_cb(void *data, struct msg **msg);
 static void mme_s6a_ula_cb(void *data, struct msg **msg);
 static void mme_s6a_pua_cb(void *data, struct msg **msg);
+static int mme_slg_psl_cb(struct msg **msg, struct avp *avp,
+        struct session *session, void *opaque, enum disp_action *act);
 static void mme_s13_eca_cb(void *data, struct msg **msg);
 static void mme_s13_ecr_expire_cb(void *data, DiamId_t sender,
         size_t sender_len, struct msg **req);
@@ -3194,6 +3197,37 @@ cleanup:
         state_cleanup(sess_data, NULL, NULL);
 }
 
+static int mme_slg_psl_cb(struct msg **msg, struct avp *avp,
+        struct session *session, void *opaque, enum disp_action *act)
+{
+    mme_event_t *e = NULL;
+    struct msg *request = NULL;
+    int rv;
+
+    ogs_assert(msg);
+    ogs_assert(*msg);
+    ogs_assert(act);
+
+    request = *msg;
+    e = mme_event_new(MME_EVENT_SLG_MESSAGE);
+    e->diameter_message = request;
+
+    rv = ogs_queue_push(ogs_app()->queue, e);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_queue_push() failed for SLg request:%d", rv);
+        fd_msg_free(request);
+        mme_event_free(e);
+        *msg = NULL;
+        *act = DISP_ACT_CONT;
+        return 0;
+    }
+
+    *msg = NULL;
+    *act = DISP_ACT_CONT;
+    ogs_pollset_notify(ogs_app()->pollset);
+    return 0;
+}
+
 int mme_fd_init(void)
 {
     int ret;
@@ -3208,6 +3242,9 @@ int mme_fd_init(void)
     ogs_assert(ret == OGS_OK);
 
     ret = ogs_diam_s13_init();
+    ogs_assert(ret == OGS_OK);
+
+    ret = ogs_diam_slg_init();
     ogs_assert(ret == OGS_OK);
 
     /* Create handler for sessions */
@@ -3230,11 +3267,20 @@ int mme_fd_init(void)
                 &hdl_s6a_idr);
     ogs_assert(ret == 0);
 
+    memset(&data, 0, sizeof(data));
+    data.command = ogs_diam_slg_cmd_psl;
+    ret = fd_disp_register(mme_slg_psl_cb, DISP_HOW_CC, &data, NULL,
+                &hdl_slg_psl);
+    ogs_assert(ret == 0);
+
     /* Advertise the support for the application in the peer */
     ret = fd_disp_app_support(ogs_diam_s6a_application, ogs_diam_vendor, 1, 0);
     ogs_assert(ret == 0);
 
     ret = fd_disp_app_support(ogs_diam_s13_application, ogs_diam_vendor, 1, 0);
+    ogs_assert(ret == 0);
+
+    ret = fd_disp_app_support(ogs_diam_slg_application, ogs_diam_vendor, 1, 0);
     ogs_assert(ret == 0);
 
     ret = ogs_diam_start();
@@ -3258,6 +3304,9 @@ void mme_fd_final(void)
 
     if (hdl_s6a_idr)
         (void) fd_disp_unregister(&hdl_s6a_idr, NULL);
+
+    if (hdl_slg_psl)
+        (void) fd_disp_unregister(&hdl_slg_psl, NULL);
 
     ogs_diam_final();
 }
