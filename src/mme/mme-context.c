@@ -2532,6 +2532,7 @@ int mme_context_parse_config(void)
                                 int family = AF_UNSPEC;
                                 int i;
                                 uint16_t port = self.lcsap_port;
+                                uint16_t local_port = 0;
                                 ogs_sockaddr_t *addr = NULL;
                                 ogs_sockaddr_t *local_addr = NULL;
 
@@ -2581,6 +2582,18 @@ int mme_context_parse_config(void)
                                             return OGS_ERROR;
                                         }
                                         port = parsed_port;
+                                    } else if (!strcmp(client_key,
+                                                "local_port")) {
+                                        const char *v =
+                                            ogs_yaml_iter_value(&client_iter);
+                                        int parsed_port = v ? atoi(v) : 0;
+                                        if (parsed_port < 0 ||
+                                            parsed_port > UINT16_MAX) {
+                                            ogs_error("Invalid LCS-AP client "
+                                                    "local port");
+                                            return OGS_ERROR;
+                                        }
+                                        local_port = parsed_port;
                                     } else if (!strcmp(client_key, "address") ||
                                             !strcmp(client_key,
                                                 "local_address")) {
@@ -2651,7 +2664,17 @@ int mme_context_parse_config(void)
 
                                 for (i = 0; i < local_hostname_num; i++) {
                                     rv = ogs_addaddrinfo(&local_addr, family,
-                                            local_hostname[i], 0, 0);
+                                            local_hostname[i], local_port, 0);
+                                    if (rv != OGS_OK) {
+                                        ogs_freeaddrinfo(addr);
+                                        ogs_freeaddrinfo(local_addr);
+                                        return rv;
+                                    }
+                                }
+                                if (!local_hostname_num && local_port) {
+                                    rv = ogs_addaddrinfo(&local_addr,
+                                            addr->ogs_sa_family, NULL,
+                                            local_port, AI_PASSIVE);
                                     if (rv != OGS_OK) {
                                         ogs_freeaddrinfo(addr);
                                         ogs_freeaddrinfo(local_addr);

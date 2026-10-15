@@ -161,11 +161,14 @@ ogs_sock_t *ogs_sctp_client(
         ogs_sockopt_t *socket_option)
 {
     int rv;
+    int local_count = 0;
+    int local_len = 0;
     char buf[OGS_ADDRSTRLEN];
 
     ogs_sock_t *new = NULL;
     ogs_sockaddr_t *addr;
     ogs_sockopt_t option;
+    unsigned char *local_buf = NULL;
 
     ogs_assert(sa_list);
 
@@ -195,6 +198,42 @@ ogs_sock_t *ogs_sctp_client(
             if (option.so_linger.l_onoff == true) {
                 rv = ogs_sctp_so_linger(new, option.so_linger.l_linger);
                 ogs_assert(rv == OGS_OK);
+            }
+
+            if (local_sa_list) {
+                ogs_sockaddr_t *local_addr;
+                int offset = 0;
+
+                local_count = 0;
+                local_len = 0;
+                for (local_addr = local_sa_list; local_addr;
+                        local_addr = local_addr->next) {
+                    local_count++;
+                    local_len += ogs_sockaddr_len(local_addr);
+                }
+                local_buf = ogs_calloc(1, local_len);
+                if (!local_buf) {
+                    ogs_error("Failed to allocate local SCTP address buffer");
+                    ogs_sctp_destroy(new);
+                    return NULL;
+                }
+                for (local_addr = local_sa_list; local_addr;
+                        local_addr = local_addr->next) {
+                    socklen_t socklen = ogs_sockaddr_len(local_addr);
+                    memcpy(local_buf + offset, &local_addr->sa, socklen);
+                    offset += socklen;
+                }
+                rv = usrsctp_bindx((struct socket *)new,
+                        (struct sockaddr *)local_buf, local_count,
+                        SCTP_BINDX_ADD_ADDR);
+                ogs_free(local_buf);
+                local_buf = NULL;
+                if (rv < 0) {
+                    ogs_log_message(OGS_LOG_ERROR, ogs_socket_errno,
+                            "sctp_client() bind local addresses failed");
+                    ogs_sctp_destroy(new);
+                    return NULL;
+                }
             }
 
             if (ogs_sctp_connect(new, addr) == OGS_OK) {
