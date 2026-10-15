@@ -19,8 +19,17 @@ struct dict_object *ogs_diam_slg_application = NULL;
 struct dict_object *ogs_diam_slg_cmd_plr = NULL;
 struct dict_object *ogs_diam_slg_cmd_plr_answer = NULL;
 struct dict_object *ogs_diam_slg_user_name = NULL;
+struct dict_object *ogs_diam_slg_imei = NULL;
 struct dict_object *ogs_diam_slg_slg_location_type = NULL;
 struct dict_object *ogs_diam_slg_client_type = NULL;
+struct dict_object *ogs_diam_slg_lcs_priority = NULL;
+struct dict_object *ogs_diam_slg_lcs_qos = NULL;
+struct dict_object *ogs_diam_slg_horizontal_accuracy = NULL;
+struct dict_object *ogs_diam_slg_vertical_requested = NULL;
+struct dict_object *ogs_diam_slg_vertical_accuracy = NULL;
+struct dict_object *ogs_diam_slg_response_time = NULL;
+struct dict_object *ogs_diam_slg_velocity_requested = NULL;
+struct dict_object *ogs_diam_slg_lcs_service_type_id = NULL;
 struct dict_object *ogs_diam_slg_location_estimate = NULL;
 struct dict_object *ogs_diam_slg_age_of_location_estimate = NULL;
 
@@ -57,12 +66,39 @@ int ogs_diam_slg_init(void)
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME, "User-Name",
             &ogs_diam_slg_user_name);
     avp_request.avp_vendor = 10415;
+    avp_request.avp_name = "IMEI";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_imei);
     avp_request.avp_name = "SLg-Location-Type";
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
             &ogs_diam_slg_slg_location_type);
     avp_request.avp_name = "LCS-Client-Type";
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
             &ogs_diam_slg_client_type);
+    avp_request.avp_name = "LCS-Priority";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_lcs_priority);
+    avp_request.avp_name = "LCS-QoS";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_lcs_qos);
+    avp_request.avp_name = "Horizontal-Accuracy";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_horizontal_accuracy);
+    avp_request.avp_name = "Vertical-Requested";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_vertical_requested);
+    avp_request.avp_name = "Vertical-Accuracy";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_vertical_accuracy);
+    avp_request.avp_name = "Response-Time";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_response_time);
+    avp_request.avp_name = "Velocity-Requested";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_velocity_requested);
+    avp_request.avp_name = "LCS-Service-Type-ID";
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
+            &ogs_diam_slg_lcs_service_type_id);
     avp_request.avp_name = "Location-Estimate";
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_AND_VENDOR, &avp_request,
             &ogs_diam_slg_location_estimate);

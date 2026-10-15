@@ -11,10 +11,17 @@
 #include "LCSAP_Location-Type.h"
 #include "LCSAP_LCS-Client-Type.h"
 #include "LCSAP_IMSI.h"
+#include "LCSAP_IMEI.h"
+#include "LCSAP_Include-Velocity.h"
 #include "LCSAP_Correlation-ID.h"
+#include "LCSAP_LCS-Priority.h"
+#include "LCSAP_LCS-QoS.h"
+#include "LCSAP_LCS-Service-Type-ID.h"
 #include "LCSAP_Payload-Type.h"
 #include "LCSAP_ProtocolIE-Container.h"
 #include "LCSAP_ProtocolIE-Field.h"
+#include "LCSAP_ProtocolExtensionContainer.h"
+#include "LCSAP_ProtocolExtensionField.h"
 
 #include "asn1c/util/message.h"
 
@@ -23,7 +30,7 @@
 ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         LCSAP_Location_Type_t location_type, const uint8_t *imsi,
         size_t imsi_len, const uint8_t plmn_id[3], uint32_t cell_id,
-        long client_type)
+        long client_type, const lcsap_location_request_options_t *options)
 {
     ogs_pkbuf_t *pkbuf = NULL;
     LCSAP_LCS_AP_PDU_t *pdu = NULL;
@@ -32,6 +39,9 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
     LCSAP_ProtocolIE_Container_81P0_t *container = NULL;
     LCSAP_Location_Request_IEs_t *ie = NULL;
     LCSAP_E_CGI_t *e_cgi = NULL;
+    LCSAP_LCS_QoS_t *lcs_qos = NULL;
+    LCSAP_ProtocolExtensionContainer_107P21_t *extension_container = NULL;
+    LCSAP_Location_Request_Extensions_t *extension = NULL;
     uint8_t correlation[4];
     uint8_t cell_identity[4];
     uint8_t imsi_tbcd[(OGS_MAX_IMSI_BCD_LEN + 1) / 2];
@@ -44,6 +54,29 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         client_type < LCSAP_LCS_Client_Type_emergency_Services ||
         client_type > LCSAP_LCS_Client_Type_pLMN_Operator_Target_MS_Service_Support) {
         ogs_error("Invalid LCS-AP Location Service Request parameters");
+        return NULL;
+    }
+    if (options &&
+        ((options->lcs_priority_present && options->lcs_priority > 1) ||
+         (options->horizontal_accuracy_present &&
+          (options->horizontal_accuracy < 0 ||
+           options->horizontal_accuracy > 127)) ||
+         (options->vertical_requested_present &&
+          (options->vertical_requested < 0 ||
+           options->vertical_requested > 1)) ||
+         (options->vertical_accuracy_present &&
+          (options->vertical_accuracy < 0 ||
+           options->vertical_accuracy > 127)) ||
+         (options->response_time_present &&
+          (options->response_time < 0 || options->response_time > 1)) ||
+         (options->include_velocity_present &&
+          (options->include_velocity < LCSAP_Include_Velocity_requested ||
+           options->include_velocity >
+                LCSAP_Include_Velocity_not_Requested)) ||
+         (options->lcs_service_type_id_present &&
+          (options->lcs_service_type_id < 0 ||
+           options->lcs_service_type_id > 127)))) {
+        ogs_error("Invalid optional LCS-AP Location Service Request parameter");
         return NULL;
     }
     for (i = 0; i < imsi_len; i++) {
@@ -185,6 +218,137 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         OCTET_STRING_fromBuf(ie->value.choice.IMSI,
             (const char *)imsi_tbcd, imsi_tbcd_len) != 0)
         goto cleanup;
+
+    if (options && options->imei_present) {
+        ie = ogs_calloc(1, sizeof(*ie));
+        if (!ie)
+            goto cleanup;
+        if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+            ogs_free(ie);
+            ie = NULL;
+            goto cleanup;
+        }
+        ie->id = LCSAP_id_IMEI;
+        ie->criticality = LCSAP_Criticality_ignore;
+        ie->value.present = LCSAP_Location_Request_IEs__value_PR_IMEI;
+        ie->value.choice.IMEI = ogs_calloc(1, sizeof(*ie->value.choice.IMEI));
+        if (!ie->value.choice.IMEI ||
+            OCTET_STRING_fromBuf(ie->value.choice.IMEI,
+                (const char *)options->imei, sizeof(options->imei)) != 0)
+            goto cleanup;
+    }
+
+    if (options && options->include_velocity_present) {
+        ie = ogs_calloc(1, sizeof(*ie));
+        if (!ie)
+            goto cleanup;
+        if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+            ogs_free(ie);
+            ie = NULL;
+            goto cleanup;
+        }
+        ie->id = LCSAP_id_Include_Velocity;
+        ie->criticality = LCSAP_Criticality_reject;
+        ie->value.present = LCSAP_Location_Request_IEs__value_PR_Include_Velocity;
+        ie->value.choice.Include_Velocity =
+            ogs_calloc(1, sizeof(*ie->value.choice.Include_Velocity));
+        if (!ie->value.choice.Include_Velocity)
+            goto cleanup;
+        *ie->value.choice.Include_Velocity = options->include_velocity;
+    }
+
+    if (options && options->lcs_priority_present) {
+        ie = ogs_calloc(1, sizeof(*ie));
+        if (!ie)
+            goto cleanup;
+        if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+            ogs_free(ie);
+            ie = NULL;
+            goto cleanup;
+        }
+        ie->id = LCSAP_id_LCS_Priority;
+        ie->criticality = LCSAP_Criticality_reject;
+        ie->value.present = LCSAP_Location_Request_IEs__value_PR_LCS_Priority;
+        ie->value.choice.LCS_Priority =
+            ogs_calloc(1, sizeof(*ie->value.choice.LCS_Priority));
+        if (!ie->value.choice.LCS_Priority ||
+            OCTET_STRING_fromBuf(ie->value.choice.LCS_Priority,
+                (const char *)&options->lcs_priority, 1) != 0)
+            goto cleanup;
+    }
+
+    if (options && options->lcs_qos_present) {
+        ie = ogs_calloc(1, sizeof(*ie));
+        if (!ie)
+            goto cleanup;
+        if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+            ogs_free(ie);
+            ie = NULL;
+            goto cleanup;
+        }
+        ie->id = LCSAP_id_LCS_QOS;
+        ie->criticality = LCSAP_Criticality_reject;
+        ie->value.present = LCSAP_Location_Request_IEs__value_PR_LCS_QoS;
+        ie->value.choice.LCS_QoS = ogs_calloc(1,
+                sizeof(*ie->value.choice.LCS_QoS));
+        if (!ie->value.choice.LCS_QoS)
+            goto cleanup;
+        lcs_qos = ie->value.choice.LCS_QoS;
+        if (options->horizontal_accuracy_present) {
+            lcs_qos->horizontal_Accuracy = ogs_calloc(1,
+                    sizeof(*lcs_qos->horizontal_Accuracy));
+            if (!lcs_qos->horizontal_Accuracy)
+                goto cleanup;
+            *lcs_qos->horizontal_Accuracy = options->horizontal_accuracy;
+        }
+        if (options->vertical_requested_present) {
+            lcs_qos->vertical_Requested = ogs_calloc(1,
+                    sizeof(*lcs_qos->vertical_Requested));
+            if (!lcs_qos->vertical_Requested)
+                goto cleanup;
+            *lcs_qos->vertical_Requested = options->vertical_requested;
+        }
+        if (options->vertical_accuracy_present) {
+            lcs_qos->vertical_Accuracy = ogs_calloc(1,
+                    sizeof(*lcs_qos->vertical_Accuracy));
+            if (!lcs_qos->vertical_Accuracy)
+                goto cleanup;
+            *lcs_qos->vertical_Accuracy = options->vertical_accuracy;
+        }
+        if (options->response_time_present) {
+            lcs_qos->response_Time = ogs_calloc(1,
+                    sizeof(*lcs_qos->response_Time));
+            if (!lcs_qos->response_Time)
+                goto cleanup;
+            *lcs_qos->response_Time = options->response_time;
+        }
+    }
+
+    if (options && options->lcs_service_type_id_present) {
+        extension_container = ogs_calloc(1, sizeof(*extension_container));
+        if (!extension_container)
+            goto cleanup;
+        request->protocolExtensions =
+            (struct LCSAP_ProtocolExtensionContainer *)extension_container;
+        extension = ogs_calloc(1, sizeof(*extension));
+        if (!extension)
+            goto cleanup;
+        if (ASN_SEQUENCE_ADD(&extension_container->list, extension) != 0) {
+            ogs_free(extension);
+            extension = NULL;
+            goto cleanup;
+        }
+        extension->id = LCSAP_id_LCS_Service_Type_ID;
+        extension->criticality = LCSAP_Criticality_ignore;
+        extension->extensionValue.present =
+            LCSAP_Location_Request_Extensions__extensionValue_PR_LCS_Service_Type_ID;
+        extension->extensionValue.choice.LCS_Service_Type_ID =
+            ogs_calloc(1, sizeof(*extension->extensionValue.choice.LCS_Service_Type_ID));
+        if (!extension->extensionValue.choice.LCS_Service_Type_ID)
+            goto cleanup;
+        *extension->extensionValue.choice.LCS_Service_Type_ID =
+            options->lcs_service_type_id;
+    }
 
     pkbuf = ogs_asn_encode(&asn_DEF_LCSAP_LCS_AP_PDU, pdu);
     ogs_free(pdu);

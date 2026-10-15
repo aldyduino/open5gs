@@ -29,8 +29,17 @@ extern struct dict_object *ogs_diam_slg_application;
 extern struct dict_object *ogs_diam_slg_cmd_plr;
 extern struct dict_object *ogs_diam_slg_cmd_plr_answer;
 extern struct dict_object *ogs_diam_slg_user_name;
+extern struct dict_object *ogs_diam_slg_imei;
 extern struct dict_object *ogs_diam_slg_slg_location_type;
 extern struct dict_object *ogs_diam_slg_client_type;
+extern struct dict_object *ogs_diam_slg_lcs_priority;
+extern struct dict_object *ogs_diam_slg_lcs_qos;
+extern struct dict_object *ogs_diam_slg_horizontal_accuracy;
+extern struct dict_object *ogs_diam_slg_vertical_requested;
+extern struct dict_object *ogs_diam_slg_vertical_accuracy;
+extern struct dict_object *ogs_diam_slg_response_time;
+extern struct dict_object *ogs_diam_slg_velocity_requested;
+extern struct dict_object *ogs_diam_slg_lcs_service_type_id;
 extern struct dict_object *ogs_diam_slg_location_estimate;
 extern struct dict_object *ogs_diam_slg_age_of_location_estimate;
 

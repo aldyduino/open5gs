@@ -289,14 +289,40 @@ static void lcsap_slg_location_response(LCSAP_Location_Response_t *response,
     lcsap_slg_pending_remove(pending);
 }
 
+static int lcsap_slg_optional_grouped_integer(struct avp *group,
+        struct dict_object *dict, long *value, bool *present)
+{
+    struct avp *avp = NULL;
+    struct avp_hdr *hdr = NULL;
+    int rv;
+
+    rv = fd_avp_search_avp(group, dict, &avp);
+    if (rv == ENOENT) {
+        *present = false;
+        return OGS_OK;
+    }
+    if (rv != 0 || !avp || fd_msg_avp_hdr(avp, &hdr) != 0 ||
+        !hdr->avp_value)
+        return OGS_ERROR;
+
+    *value = hdr->avp_value->i32;
+    *present = true;
+    return OGS_OK;
+}
+
 void lcsap_handle_slg_request(struct msg *request)
 {
     struct avp *avp = NULL;
+    struct avp *qos_avp = NULL;
     struct avp_hdr *hdr = NULL;
     char imsi[OGS_MAX_IMSI_BCD_LEN + 1];
     size_t imsi_len;
     long location_type = LCSAP_Location_Type_geographic_Information;
     long client_type = LCSAP_LCS_Client_Type_value_Added_Services;
+    long lcs_priority;
+    long lcs_service_type_id;
+    long velocity_requested;
+    lcsap_location_request_options_t options = { 0 };
     ogs_nas_plmn_id_t nas_plmn_id;
     mme_ue_t *mme_ue = NULL;
     enb_ue_t *enb_ue = NULL;
@@ -327,6 +353,18 @@ void lcsap_handle_slg_request(struct msg *request)
         }
     }
 
+    rv = fd_msg_search_avp(request, ogs_diam_slg_imei, &avp);
+    if (rv != 0)
+        goto reject;
+    if (avp) {
+        if (fd_msg_avp_hdr(avp, &hdr) != 0 || !hdr->avp_value ||
+            !hdr->avp_value->os.data ||
+            hdr->avp_value->os.len != sizeof(options.imei))
+            goto reject;
+        options.imei_present = true;
+        memcpy(options.imei, hdr->avp_value->os.data, sizeof(options.imei));
+    }
+
     rv = fd_msg_search_avp(request, ogs_diam_slg_slg_location_type, &avp);
     if (rv != 0 || !avp || fd_msg_avp_hdr(avp, &hdr) != 0) {
         ogs_warn("Reject Provide-Location-Request without SLg-Location-Type");
@@ -355,6 +393,78 @@ void lcsap_handle_slg_request(struct msg *request)
     if (client_type < LCSAP_LCS_Client_Type_emergency_Services ||
         client_type > LCSAP_LCS_Client_Type_pLMN_Operator_Target_MS_Service_Support)
         goto reject;
+
+    rv = fd_msg_search_avp(request, ogs_diam_slg_lcs_priority, &avp);
+    if (rv != 0)
+        goto reject;
+    if (avp) {
+        if (fd_msg_avp_hdr(avp, &hdr) != 0 || !hdr->avp_value)
+            goto reject;
+        lcs_priority = hdr->avp_value->i32;
+        if (lcs_priority < 0 || lcs_priority > 1)
+            goto reject;
+        options.lcs_priority_present = true;
+        options.lcs_priority = (uint8_t)lcs_priority;
+    }
+
+    rv = fd_msg_search_avp(request, ogs_diam_slg_lcs_qos, &qos_avp);
+    if (rv != 0)
+        goto reject;
+    if (qos_avp) {
+        if (lcsap_slg_optional_grouped_integer(qos_avp,
+                    ogs_diam_slg_horizontal_accuracy,
+                    &options.horizontal_accuracy,
+                    &options.horizontal_accuracy_present) != OGS_OK ||
+            lcsap_slg_optional_grouped_integer(qos_avp,
+                    ogs_diam_slg_vertical_requested,
+                    &options.vertical_requested,
+                    &options.vertical_requested_present) != OGS_OK ||
+            lcsap_slg_optional_grouped_integer(qos_avp,
+                    ogs_diam_slg_vertical_accuracy,
+                    &options.vertical_accuracy,
+                    &options.vertical_accuracy_present) != OGS_OK ||
+            lcsap_slg_optional_grouped_integer(qos_avp,
+                    ogs_diam_slg_response_time,
+                    &options.response_time,
+                    &options.response_time_present) != OGS_OK)
+            goto reject;
+        options.lcs_qos_present =
+            options.horizontal_accuracy_present ||
+            options.vertical_requested_present ||
+            options.vertical_accuracy_present ||
+            options.response_time_present;
+    }
+
+    rv = fd_msg_search_avp(request,
+            ogs_diam_slg_velocity_requested, &avp);
+    if (rv != 0)
+        goto reject;
+    if (avp) {
+        if (fd_msg_avp_hdr(avp, &hdr) != 0 || !hdr->avp_value)
+            goto reject;
+        velocity_requested = hdr->avp_value->i32;
+        if (velocity_requested < 0 || velocity_requested > 1)
+            goto reject;
+        options.include_velocity_present = true;
+        options.include_velocity =
+            velocity_requested == 1 ?
+                LCSAP_Include_Velocity_requested :
+                LCSAP_Include_Velocity_not_Requested;
+    }
+
+    rv = fd_msg_search_avp(request,
+            ogs_diam_slg_lcs_service_type_id, &avp);
+    if (rv != 0)
+        goto reject;
+    if (avp) {
+        if (fd_msg_avp_hdr(avp, &hdr) != 0 || !hdr->avp_value)
+            goto reject;
+        lcs_service_type_id = hdr->avp_value->i32;
+        if (lcs_service_type_id < 0 || lcs_service_type_id > 127)
+            goto reject;
+        options.lcs_service_type_id_present = true;
+        options.lcs_service_type_id = lcs_service_type_id;
+    }
 
     mme_ue = mme_ue_find_by_imsi_bcd(imsi);
     if (!mme_ue || !ECM_CONNECTED(mme_ue)) {
@@ -402,7 +512,7 @@ void lcsap_handle_slg_request(struct msg *request)
                 LCSAP_Location_Type_last_known_location,
             (const uint8_t *)imsi, imsi_len,
             (const uint8_t *)&nas_plmn_id, mme_ue->e_cgi.cell_id,
-            client_type);
+            client_type, &options);
     if (!pkbuf || lcsap_send(esmlc, pkbuf) != OGS_OK) {
         if (pending->diameter_request)
             (void)lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY,
