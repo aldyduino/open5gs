@@ -13,6 +13,7 @@
 #include "LCSAP_IMSI.h"
 #include "LCSAP_IMEI.h"
 #include "LCSAP_Include-Velocity.h"
+#include "LCSAP_UE-Positioning-Capability.h"
 #include "LCSAP_Correlation-ID.h"
 #include "LCSAP_LCS-Priority.h"
 #include "LCSAP_LCS-QoS.h"
@@ -39,6 +40,7 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
     LCSAP_ProtocolIE_Container_81P0_t *container = NULL;
     LCSAP_Location_Request_IEs_t *ie = NULL;
     LCSAP_E_CGI_t *e_cgi = NULL;
+    LCSAP_UE_Positioning_Capability_t *positioning_capability = NULL;
     LCSAP_LCS_QoS_t *lcs_qos = NULL;
     LCSAP_ProtocolExtensionContainer_107P21_t *extension_container = NULL;
     LCSAP_Location_Request_Extensions_t *extension = NULL;
@@ -218,6 +220,25 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         OCTET_STRING_fromBuf(ie->value.choice.IMSI,
             (const char *)imsi_tbcd, imsi_tbcd_len) != 0)
         goto cleanup;
+
+    ie = ogs_calloc(1, sizeof(*ie));
+    if (!ie)
+        goto cleanup;
+    if (ASN_SEQUENCE_ADD(&container->list, ie) != 0) {
+        ogs_free(ie);
+        ie = NULL;
+        goto cleanup;
+    }
+    ie->id = LCSAP_id_UE_Positioning_Capability;
+    ie->criticality = LCSAP_Criticality_reject;
+    ie->value.present =
+        LCSAP_Location_Request_IEs__value_PR_UE_Positioning_Capability;
+    ie->value.choice.UE_Positioning_Capability =
+        ogs_calloc(1, sizeof(*ie->value.choice.UE_Positioning_Capability));
+    if (!ie->value.choice.UE_Positioning_Capability)
+        goto cleanup;
+    positioning_capability = ie->value.choice.UE_Positioning_Capability;
+    positioning_capability->lPP = 1;
 
     if (options && options->imei_present) {
         ie = ogs_calloc(1, sizeof(*ie));
