@@ -93,6 +93,8 @@ void mme_context_init(void)
 
     ogs_list_init(&self.s1ap_list);
     ogs_list_init(&self.s1ap_list6);
+    ogs_list_init(&self.lcsap_list);
+    ogs_list_init(&self.lcsap_list6);
 
     ogs_list_init(&self.sgsn_list);
     ogs_list_init(&self.sgw_list);
@@ -2519,7 +2521,134 @@ int mme_context_parse_config(void)
                             ogs_yaml_iter_key(&lcsap_iter);
                         ogs_assert(lcsap_key);
 
-                        if (!strcmp(lcsap_key, "client")) {
+                        if (!strcmp(lcsap_key, "server")) {
+                            ogs_yaml_iter_t server_iter, server_array;
+                            ogs_yaml_iter_recurse(
+                                    &lcsap_iter, &server_array);
+                            do {
+                                const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
+                                int hostname_num = 0;
+                                int family = AF_UNSPEC;
+                                int i;
+                                uint16_t port = self.lcsap_port;
+                                ogs_sockopt_t option;
+                                bool is_option = false;
+                                ogs_sockaddr_t *addr = NULL;
+
+                                if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_MAPPING_NODE) {
+                                    memcpy(&server_iter, &server_array,
+                                            sizeof(ogs_yaml_iter_t));
+                                } else if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_SEQUENCE_NODE) {
+                                    if (!ogs_yaml_iter_next(&server_array))
+                                        break;
+                                    ogs_yaml_iter_recurse(
+                                            &server_array, &server_iter);
+                                } else if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_SCALAR_NODE) {
+                                    break;
+                                } else {
+                                    ogs_assert_if_reached();
+                                }
+
+                                while (ogs_yaml_iter_next(&server_iter)) {
+                                    const char *server_key =
+                                        ogs_yaml_iter_key(&server_iter);
+                                    ogs_assert(server_key);
+                                    if (!strcmp(server_key, "family")) {
+                                        const char *v =
+                                            ogs_yaml_iter_value(&server_iter);
+                                        if (v)
+                                            family = atoi(v);
+                                        if (family != AF_UNSPEC &&
+                                            family != AF_INET &&
+                                            family != AF_INET6) {
+                                            ogs_error("Invalid LCS-AP server "
+                                                    "address family %d",
+                                                    family);
+                                            return OGS_ERROR;
+                                        }
+                                    } else if (!strcmp(server_key,
+                                                "address")) {
+                                        ogs_yaml_iter_t address_iter;
+                                        ogs_yaml_iter_recurse(
+                                                &server_iter, &address_iter);
+                                        ogs_assert(ogs_yaml_iter_type(
+                                                    &address_iter) !=
+                                                YAML_MAPPING_NODE);
+                                        do {
+                                            if (ogs_yaml_iter_type(
+                                                        &address_iter) ==
+                                                    YAML_SEQUENCE_NODE) {
+                                                if (!ogs_yaml_iter_next(
+                                                            &address_iter))
+                                                    break;
+                                            }
+                                            if (hostname_num >=
+                                                    OGS_MAX_NUM_OF_HOSTNAME) {
+                                                ogs_error("Too many LCS-AP "
+                                                        "server addresses");
+                                                return OGS_ERROR;
+                                            }
+                                            hostname[hostname_num++] =
+                                                ogs_yaml_iter_value(
+                                                        &address_iter);
+                                        } while (ogs_yaml_iter_type(
+                                                    &address_iter) ==
+                                                YAML_SEQUENCE_NODE);
+                                    } else if (!strcmp(server_key, "port")) {
+                                        const char *v =
+                                            ogs_yaml_iter_value(&server_iter);
+                                        int parsed_port = v ? atoi(v) : 0;
+                                        if (parsed_port < 1 ||
+                                            parsed_port > UINT16_MAX) {
+                                            ogs_error("Invalid LCS-AP server "
+                                                    "port");
+                                            return OGS_ERROR;
+                                        }
+                                        port = parsed_port;
+                                    } else if (!strcmp(server_key, "option")) {
+                                        rv = ogs_app_parse_sockopt_config(
+                                                &server_iter, &option);
+                                        if (rv != OGS_OK) {
+                                            ogs_error("ogs_app_parse_sockopt_"
+                                                    "config() failed");
+                                            return rv;
+                                        }
+                                        is_option = true;
+                                    } else {
+                                        ogs_warn("unknown key `%s`",
+                                                server_key);
+                                    }
+                                }
+
+                                if (!hostname_num) {
+                                    ogs_error("No LCS-AP server address");
+                                    return OGS_ERROR;
+                                }
+                                for (i = 0; i < hostname_num; i++) {
+                                    rv = ogs_addaddrinfo(&addr, family,
+                                            hostname[i], port, 0);
+                                    if (rv != OGS_OK) {
+                                        ogs_freeaddrinfo(addr);
+                                        return rv;
+                                    }
+                                }
+                                if (addr) {
+                                    if (!ogs_global_conf()->parameter.no_ipv4)
+                                        ogs_socknode_add(&self.lcsap_list,
+                                                AF_INET, addr,
+                                                is_option ? &option : NULL);
+                                    if (!ogs_global_conf()->parameter.no_ipv6)
+                                        ogs_socknode_add(&self.lcsap_list6,
+                                                AF_INET6, addr,
+                                                is_option ? &option : NULL);
+                                    ogs_freeaddrinfo(addr);
+                                }
+                            } while (ogs_yaml_iter_type(&server_array) ==
+                                    YAML_SEQUENCE_NODE);
+                        } else if (!strcmp(lcsap_key, "client")) {
                             ogs_yaml_iter_t client_iter, client_array;
                             ogs_yaml_iter_recurse(
                                     &lcsap_iter, &client_array);

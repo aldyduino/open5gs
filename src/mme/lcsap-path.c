@@ -8,6 +8,7 @@
 int lcsap_open(void)
 {
     mme_esmlc_t *esmlc = NULL;
+    int rv;
 
     lcsap_slg_init();
 
@@ -20,12 +21,20 @@ int lcsap_open(void)
                 lcsap_state_final, &e);
     }
 
+    rv = lcsap_server_open();
+    if (rv != OGS_OK) {
+        lcsap_server_close();
+        return rv;
+    }
+
     return OGS_OK;
 }
 
 void lcsap_close(void)
 {
     mme_esmlc_t *esmlc = NULL;
+
+    lcsap_server_close();
 
     ogs_list_for_each(&mme_self()->esmlc_list, esmlc) {
         mme_event_t e;
@@ -90,6 +99,8 @@ void lcsap_event_push(mme_event_t *e)
         ogs_error("ogs_queue_push() failed:%d", (int)rv);
         if (e->pkbuf)
             ogs_pkbuf_free(e->pkbuf);
+        if (e->id == MME_EVENT_LCSAP_SERVER_ACCEPT && e->sock)
+            ogs_sctp_destroy(e->sock);
         mme_event_free(e);
         return;
     }

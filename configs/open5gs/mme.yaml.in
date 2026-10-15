@@ -201,14 +201,18 @@ mme:
 #          default_route: true
 #
 ################################################################################
-# E-SMLC LCS-AP Client (SLs)
+# LCS-AP Server and E-SMLC Client (SLs)
 ################################################################################
 #  o E-SMLC
 #  lcsap:
+#    server:
+#      - address: 127.0.0.1
+#        port: 9082
 #    client:
 #      - address: esmlc.open5gs.org
 #        port: 9082
 #        local_address: 127.0.0.2
+#        local_port: 0 # Optional local SCTP source port; 0 lets the OS choose
 #
 # SLg GMLC peers are configured as freeDiameter peers in
 # configs/freeDiameter/mme.conf.in.

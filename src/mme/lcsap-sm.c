@@ -49,6 +49,7 @@ static lcsap_slg_pending_t *lcsap_slg_pending_find(uint32_t correlation_id)
             return pending;
     }
 
+
     return NULL;
 }
 
@@ -722,72 +723,75 @@ void lcsap_state_connected(ogs_fsm_t *s, mme_event_t *e)
         mme_esmlc_close(esmlc);
         OGS_FSM_TRAN(s, &lcsap_state_will_connect);
         break;
-    case MME_EVENT_LCSAP_MESSAGE: {
-        int rv;
-        ogs_pkbuf_t *pkbuf = e->pkbuf;
-        LCSAP_LCS_AP_PDU_t message;
-
-        ogs_assert(pkbuf);
-        memset(&message, 0, sizeof(message));
-        rv = ogs_asn_decode(&asn_DEF_LCSAP_LCS_AP_PDU,
-                &message, sizeof(message), pkbuf);
-        if (rv == OGS_OK) {
-            long procedure_code = -1;
-
-            if (message.present == LCSAP_LCS_AP_PDU_PR_initiatingMessage &&
-                message.choice.initiatingMessage)
-                procedure_code =
-                    message.choice.initiatingMessage->procedureCode;
-            else if (message.present ==
-                    LCSAP_LCS_AP_PDU_PR_successfulOutcome &&
-                    message.choice.successfulOutcome)
-                procedure_code =
-                    message.choice.successfulOutcome->procedureCode;
-            else if (message.present ==
-                    LCSAP_LCS_AP_PDU_PR_unsuccessfulOutcome &&
-                    message.choice.unsuccessfulOutcome)
-                procedure_code =
-                    message.choice.unsuccessfulOutcome->procedureCode;
-
-            ogs_debug("Received LCS-AP procedure [%ld]", procedure_code);
-            if (message.present == LCSAP_LCS_AP_PDU_PR_successfulOutcome &&
-                message.choice.successfulOutcome &&
-                message.choice.successfulOutcome->procedureCode ==
-                    LCSAP_id_Location_Service_Request &&
-                message.choice.successfulOutcome->value.present ==
-                    LCSAP_SuccessfulOutcome__value_PR_Location_Response) {
-                lcsap_slg_location_response(
-                    message.choice.successfulOutcome->value.choice.
-                        Location_Response, true);
-            } else if (message.present ==
-                    LCSAP_LCS_AP_PDU_PR_unsuccessfulOutcome &&
-                    message.choice.unsuccessfulOutcome &&
-                    message.choice.unsuccessfulOutcome->procedureCode ==
-                        LCSAP_id_Location_Service_Request &&
-                    message.choice.unsuccessfulOutcome->value.present ==
-                        LCSAP_UnsuccessfulOutcome__value_PR_Location_Response) {
-                lcsap_slg_location_response(
-                    message.choice.unsuccessfulOutcome->value.choice.
-                        Location_Response, false);
-            }
-            if (message.present == LCSAP_LCS_AP_PDU_PR_initiatingMessage &&
-                message.choice.initiatingMessage &&
-                message.choice.initiatingMessage->procedureCode ==
-                    LCSAP_id_Connection_Oriented_Information_Transfer &&
-                message.choice.initiatingMessage->value.present ==
-                    LCSAP_InitiatingMessage__value_PR_Connection_Oriented_Information) {
-                lcsap_handle_connection_oriented_information(
-                    message.choice.initiatingMessage->value.choice.
-                        Connection_Oriented_Information);
-            }
-        } else {
-            ogs_warn("Cannot decode LCS-AP message");
-        }
-        ogs_asn_free(&asn_DEF_LCSAP_LCS_AP_PDU, &message);
+    case MME_EVENT_LCSAP_MESSAGE:
+        lcsap_process_message(e->pkbuf);
         break;
-    }
     default:
         ogs_error("Unexpected LCS-AP event %s", mme_event_get_name(e));
         break;
     }
+}
+
+void lcsap_process_message(ogs_pkbuf_t *pkbuf)
+{
+    LCSAP_LCS_AP_PDU_t message;
+    int rv;
+
+    ogs_assert(pkbuf);
+    memset(&message, 0, sizeof(message));
+    rv = ogs_asn_decode(&asn_DEF_LCSAP_LCS_AP_PDU,
+            &message, sizeof(message), pkbuf);
+    if (rv == OGS_OK) {
+        long procedure_code = -1;
+
+        if (message.present == LCSAP_LCS_AP_PDU_PR_initiatingMessage &&
+            message.choice.initiatingMessage)
+            procedure_code =
+                message.choice.initiatingMessage->procedureCode;
+        else if (message.present ==
+                LCSAP_LCS_AP_PDU_PR_successfulOutcome &&
+                message.choice.successfulOutcome)
+            procedure_code =
+                message.choice.successfulOutcome->procedureCode;
+        else if (message.present ==
+                LCSAP_LCS_AP_PDU_PR_unsuccessfulOutcome &&
+                message.choice.unsuccessfulOutcome)
+            procedure_code =
+                message.choice.unsuccessfulOutcome->procedureCode;
+
+        ogs_debug("Received LCS-AP procedure [%ld]", procedure_code);
+        if (message.present == LCSAP_LCS_AP_PDU_PR_successfulOutcome &&
+            message.choice.successfulOutcome &&
+            message.choice.successfulOutcome->procedureCode ==
+                LCSAP_id_Location_Service_Request &&
+            message.choice.successfulOutcome->value.present ==
+                LCSAP_SuccessfulOutcome__value_PR_Location_Response) {
+            lcsap_slg_location_response(
+                message.choice.successfulOutcome->value.choice.
+                        Location_Response, true);
+        } else if (message.present ==
+                LCSAP_LCS_AP_PDU_PR_unsuccessfulOutcome &&
+                message.choice.unsuccessfulOutcome &&
+                message.choice.unsuccessfulOutcome->procedureCode ==
+                        LCSAP_id_Location_Service_Request &&
+                message.choice.unsuccessfulOutcome->value.present ==
+                        LCSAP_UnsuccessfulOutcome__value_PR_Location_Response) {
+            lcsap_slg_location_response(
+                message.choice.unsuccessfulOutcome->value.choice.
+                        Location_Response, false);
+        }
+        if (message.present == LCSAP_LCS_AP_PDU_PR_initiatingMessage &&
+            message.choice.initiatingMessage &&
+            message.choice.initiatingMessage->procedureCode ==
+                LCSAP_id_Connection_Oriented_Information_Transfer &&
+            message.choice.initiatingMessage->value.present ==
+                LCSAP_InitiatingMessage__value_PR_Connection_Oriented_Information) {
+            lcsap_handle_connection_oriented_information(
+                message.choice.initiatingMessage->value.choice.
+                        Connection_Oriented_Information);
+        }
+    } else {
+        ogs_warn("Cannot decode LCS-AP message");
+    }
+    ogs_asn_free(&asn_DEF_LCSAP_LCS_AP_PDU, &message);
 }

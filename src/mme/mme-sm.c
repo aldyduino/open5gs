@@ -1226,6 +1226,28 @@ cleanup:
             ogs_pkbuf_free(e->pkbuf);
         break;
 
+    case MME_EVENT_LCSAP_SERVER_ACCEPT:
+        sock = e->sock;
+        ogs_assert(sock);
+        if (lcsap_server_add_peer(sock) != OGS_OK) {
+            ogs_error("Failed to register LCS-AP accepted peer");
+            ogs_sctp_destroy(sock);
+        }
+        break;
+
+    case MME_EVENT_LCSAP_SERVER_CLOSE:
+        sock = e->sock;
+        ogs_assert(sock);
+        lcsap_server_remove_peer(sock);
+        break;
+
+    case MME_EVENT_LCSAP_SERVER_MESSAGE:
+        pkbuf = e->pkbuf;
+        ogs_assert(pkbuf);
+        lcsap_process_message(pkbuf);
+        ogs_pkbuf_free(pkbuf);
+        break;
+
     case MME_EVENT_LCSAP_TIMER:
         esmlc = e->esmlc;
         ogs_assert(esmlc);

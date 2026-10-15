@@ -103,6 +103,12 @@ const char *mme_event_get_name(mme_event_t *e)
 
     case MME_EVENT_LCSAP_MESSAGE:
         return "MME_EVENT_LCSAP_MESSAGE";
+    case MME_EVENT_LCSAP_SERVER_ACCEPT:
+        return "MME_EVENT_LCSAP_SERVER_ACCEPT";
+    case MME_EVENT_LCSAP_SERVER_MESSAGE:
+        return "MME_EVENT_LCSAP_SERVER_MESSAGE";
+    case MME_EVENT_LCSAP_SERVER_CLOSE:
+        return "MME_EVENT_LCSAP_SERVER_CLOSE";
     case MME_EVENT_LCSAP_TIMER:
         return "MME_EVENT_LCSAP_TIMER";
     case MME_EVENT_LCSAP_LO_SCTP_COMM_UP:
