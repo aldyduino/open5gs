@@ -83,9 +83,7 @@ int lcsap_send_to_esmlc(ogs_pkbuf_t *pkbuf)
             return lcsap_send(esmlc, pkbuf);
     }
 
-    ogs_warn("No connected E-SMLC for LCS-AP message");
-    ogs_pkbuf_free(pkbuf);
-    return OGS_NOTFOUND;
+    return lcsap_server_send(pkbuf);
 }
 
 void lcsap_event_push(mme_event_t *e)

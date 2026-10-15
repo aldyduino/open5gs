@@ -327,7 +327,6 @@ void lcsap_handle_slg_request(struct msg *request)
     ogs_nas_plmn_id_t nas_plmn_id;
     mme_ue_t *mme_ue = NULL;
     enb_ue_t *enb_ue = NULL;
-    mme_esmlc_t *esmlc = NULL;
     lcsap_slg_pending_t *pending = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
     uint32_t correlation_id;
@@ -478,15 +477,6 @@ void lcsap_handle_slg_request(struct msg *request)
         ogs_warn("SLg request for IMSI[%s] has no valid S1 context", imsi);
         goto reject;
     }
-    ogs_list_for_each(&mme_self()->esmlc_list, esmlc) {
-        if (esmlc->sock)
-            break;
-    }
-    if (!esmlc || !esmlc->sock) {
-        ogs_warn("No connected E-SMLC for SLg request");
-        goto reject;
-    }
-
     correlation_id = enb_ue->mme_ue_s1ap_id;
     if (lcsap_slg_pending_find(correlation_id)) {
         ogs_warn("SLg request already pending for IMSI[%s]", imsi);
@@ -514,7 +504,7 @@ void lcsap_handle_slg_request(struct msg *request)
             (const uint8_t *)imsi, imsi_len,
             (const uint8_t *)&nas_plmn_id, mme_ue->e_cgi.cell_id,
             client_type, &options);
-    if (!pkbuf || lcsap_send(esmlc, pkbuf) != OGS_OK) {
+    if (!pkbuf || lcsap_send_to_esmlc(pkbuf) != OGS_OK) {
         if (pending->diameter_request)
             (void)lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY,
                     NULL, 0);

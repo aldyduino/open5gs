@@ -303,6 +303,28 @@ void lcsap_server_remove_peer(ogs_sock_t *sock)
 #endif
 }
 
+int lcsap_server_send(ogs_pkbuf_t *pkbuf)
+{
+    ogs_assert(pkbuf);
+#if !HAVE_USRSCTP
+    lcsap_peer_t *peer = NULL;
+
+    ogs_list_for_each(&peer_list, peer) {
+        int sent = ogs_sctp_sendmsg(peer->sock,
+                pkbuf->data, pkbuf->len, NULL, OGS_SCTP_LCSAP_PPID, 0);
+        if (sent == (int)pkbuf->len) {
+            ogs_pkbuf_free(pkbuf);
+            return OGS_OK;
+        }
+        ogs_error("LCS-AP SCTP server send failed (%d:%s)",
+                errno, strerror(errno));
+    }
+#endif
+    ogs_warn("No connected LCS-AP server peer");
+    ogs_pkbuf_free(pkbuf);
+    return OGS_NOTFOUND;
+}
+
 #if HAVE_USRSCTP
 static void usrsctp_server_recv_handler(struct socket *socket,
         void *data, int flags)
