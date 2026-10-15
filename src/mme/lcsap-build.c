@@ -213,7 +213,7 @@ ogs_pkbuf_t *lcsap_build_location_request(uint32_t correlation_id,
         goto cleanup;
     }
     ie->id = LCSAP_id_IMSI;
-    ie->criticality = LCSAP_Criticality_reject;
+    ie->criticality = LCSAP_Criticality_ignore;
     ie->value.present = LCSAP_Location_Request_IEs__value_PR_IMSI;
     ie->value.choice.IMSI = ogs_calloc(1, sizeof(*ie->value.choice.IMSI));
     if (!ie->value.choice.IMSI ||
