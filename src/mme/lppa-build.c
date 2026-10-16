@@ -28,7 +28,7 @@ ogs_pkbuf_t *s1ap_build_downlink_ue_associated_lppa_transport(
     ogs_assert(initiating_message);
     initiating_message->procedureCode =
         S1AP_ProcedureCode_id_downlinkUEAssociatedLPPaTransport;
-    initiating_message->criticality = S1AP_Criticality_reject;
+    initiating_message->criticality = S1AP_Criticality_ignore;
     initiating_message->value.present =
         S1AP_InitiatingMessage__value_PR_DownlinkUEAssociatedLPPaTransport;
     initiating_message->value.choice.DownlinkUEAssociatedLPPaTransport =

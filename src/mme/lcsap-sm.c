@@ -588,7 +588,8 @@ static void lcsap_handle_connection_oriented_information(
                 nasbuf = emm_build_downlink_generic_nas_transport(
                         mme_ue, apdu->buf, apdu->size);
                 if (nasbuf) {
-                    int rv = nas_eps_send_to_enb(mme_ue, nasbuf);
+                    int rv = nas_eps_send_to_downlink_nas_transport(
+                            enb_ue, nasbuf);
                     if (rv != OGS_OK)
                         ogs_error("Failed forwarding LPP to UE "
                                 "[Correlation-ID:%u, MME-UE-S1AP-ID:%u, "
