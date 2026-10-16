@@ -63,6 +63,10 @@ void s1ap_handle_uplink_ue_associated_lppa_transport(
 
     enb_ue->lppa_routing_id_presence = true;
     enb_ue->lppa_routing_id = (uint8_t)*routing_id;
+    ogs_debug("Received uplink LPPA [MME-UE-S1AP-ID:%lld, "
+            "eNB-UE-S1AP-ID:%lld, routing-id:%u]",
+            (long long)*mme_ue_s1ap_id, (long long)*enb_ue_s1ap_id,
+            enb_ue->lppa_routing_id);
 
     correlation_id[0] = (*mme_ue_s1ap_id >> 24) & 0xff;
     correlation_id[1] = (*mme_ue_s1ap_id >> 16) & 0xff;
