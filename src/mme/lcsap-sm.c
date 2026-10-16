@@ -608,20 +608,24 @@ static void lcsap_handle_connection_oriented_information(
             if (enb_ue) {
                 mme_ue_t *mme_ue = mme_ue_find_by_id(enb_ue->mme_ue_id);
                 ogs_pkbuf_t *s1apbuf = NULL;
+                uint8_t routing_id = enb_ue->lppa_routing_id_presence ?
+                    enb_ue->lppa_routing_id :
+                    mme_self()->lcsap_routing_id;
 
-                if (!mme_ue || mme_ue->enb_ue_id != enb_ue->id ||
-                    !enb_ue->lppa_routing_id_presence) {
-                    ogs_warn("LPPA Correlation-ID[%u] has no active S1 "
-                            "routing [MME-UE-S1AP-ID:%u, routing-id:%u, "
-                            "present:%d]", mme_ue_s1ap_id,
-                            enb_ue->mme_ue_s1ap_id,
-                            enb_ue->lppa_routing_id,
-                            enb_ue->lppa_routing_id_presence);
+                if (!mme_ue || mme_ue->enb_ue_id != enb_ue->id) {
+                    ogs_warn("LPPA Correlation-ID[%u] points to a stale "
+                            "S1 context [MME-UE-S1AP-ID:%u]",
+                            mme_ue_s1ap_id, enb_ue->mme_ue_s1ap_id);
                     return;
                 }
 
+                if (!enb_ue->lppa_routing_id_presence)
+                    ogs_debug("Using configured LPPa Routing-ID[%u] "
+                            "for Correlation-ID[%u]",
+                            routing_id, mme_ue_s1ap_id);
+
                 s1apbuf = s1ap_build_downlink_ue_associated_lppa_transport(
-                        enb_ue, enb_ue->lppa_routing_id,
+                        enb_ue, routing_id,
                         apdu->buf, apdu->size);
                 if (s1apbuf) {
                     int rv = s1ap_send_to_enb_ue(enb_ue, s1apbuf);
@@ -631,11 +635,11 @@ static void lcsap_handle_connection_oriented_information(
                                 "eNB-UE-S1AP-ID:%u, routing-id:%u, rv:%d]",
                                 mme_ue_s1ap_id, enb_ue->mme_ue_s1ap_id,
                                 enb_ue->enb_ue_s1ap_id,
-                                enb_ue->lppa_routing_id, rv);
+                                routing_id, rv);
                     else
                         ogs_debug("Forwarded LPPA to eNB "
                                 "[Correlation-ID:%u, routing-id:%u]",
-                                mme_ue_s1ap_id, enb_ue->lppa_routing_id);
+                                mme_ue_s1ap_id, routing_id);
                 } else {
                     ogs_error("Failed to build downlink LPPA S1AP message");
                 }

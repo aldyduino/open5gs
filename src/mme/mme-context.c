@@ -82,6 +82,7 @@ void mme_context_init(void)
     memset(&self, 0, sizeof(mme_context_t));
     self.diam_config = &g_diam_conf;
     self.lcsap_port = 9082;
+    self.lcsap_routing_id = 0;
 
     ogs_log_install_domain(&__ogs_sctp_domain, "sctp", ogs_core()->log.level);
     ogs_log_install_domain(&__ogs_s1ap_domain, "s1ap", ogs_core()->log.level);
@@ -2521,7 +2522,17 @@ int mme_context_parse_config(void)
                             ogs_yaml_iter_key(&lcsap_iter);
                         ogs_assert(lcsap_key);
 
-                        if (!strcmp(lcsap_key, "server")) {
+                        if (!strcmp(lcsap_key, "routing_id")) {
+                            const char *v =
+                                ogs_yaml_iter_value(&lcsap_iter);
+                            int routing_id = v ? atoi(v) : -1;
+                            if (routing_id < 0 || routing_id > UINT8_MAX) {
+                                ogs_error("Invalid LCS-AP Routing-ID[%d]",
+                                        routing_id);
+                                return OGS_ERROR;
+                            }
+                            self.lcsap_routing_id = routing_id;
+                        } else if (!strcmp(lcsap_key, "server")) {
                             ogs_yaml_iter_t server_iter, server_array;
                             ogs_yaml_iter_recurse(
                                     &lcsap_iter, &server_array);

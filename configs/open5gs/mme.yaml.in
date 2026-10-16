@@ -205,6 +205,7 @@ mme:
 ################################################################################
 #  o E-SMLC
 #  lcsap:
+#    routing_id: 0 # S1AP LPPa Routing-ID configured for this E-SMLC (0-255)
 #    server:
 #      - address: 127.0.0.1
 #        port: 9082
