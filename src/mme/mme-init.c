@@ -88,10 +88,10 @@ int mme_initialize(void)
     rv = sgsap_open();
     if (rv != OGS_OK) return OGS_ERROR;
 
-    rv = lcsap_open();
+    rv = s1ap_open();
     if (rv != OGS_OK) return OGS_ERROR;
 
-    rv = s1ap_open();
+    rv = lcsap_open();
     if (rv != OGS_OK) return OGS_ERROR;
 
     thread = ogs_thread_create(mme_main, NULL);
