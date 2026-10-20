@@ -34,7 +34,7 @@ ogs_sock_t *lcsap_client(mme_esmlc_t *esmlc)
     ogs_assert(esmlc);
 
     sock = ogs_sctp_client(SOCK_STREAM, esmlc->sa_list,
-            esmlc->local_sa_list, esmlc->option);
+            esmlc->local_sa_list, esmlc->option, true);
     if (!sock)
         return NULL;
 

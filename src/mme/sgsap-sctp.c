@@ -39,7 +39,7 @@ ogs_sock_t *sgsap_client(mme_vlr_t *vlr)
     ogs_assert(vlr);
 
     sock = ogs_sctp_client(SOCK_STREAM,
-            vlr->sa_list, vlr->local_sa_list, vlr->option);
+            vlr->sa_list, vlr->local_sa_list, vlr->option, false);
     if (sock) {
         vlr->sock = sock;
 #if HAVE_USRSCTP

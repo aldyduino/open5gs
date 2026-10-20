@@ -279,7 +279,7 @@ ogs_sock_t *ogs_sctp_client(
     int type,
     ogs_sockaddr_t *sa_list,
     ogs_sockaddr_t *local_sa_list,
-    ogs_sockopt_t *socket_option)
+    ogs_sockopt_t *socket_option, bool nonblocking)
 {
     int rv;
     int sa_family;
@@ -325,6 +325,10 @@ ogs_sock_t *ogs_sctp_client(
 
     /* Create the SCTP socket using the determined address family */
     new_sock = ogs_sctp_socket(sa_family, type);
+    if (!new_sock)
+        goto err;
+    if (nonblocking && ogs_nonblocking(new_sock->fd) != OGS_OK)
+        goto err;
 
     /* Configure SCTP-specific options. */
     rv = ogs_sctp_peer_addr_params(new_sock, &option);
@@ -380,7 +384,9 @@ ogs_sock_t *ogs_sctp_client(
                        (struct sockaddr *)remote_buf,
                        remote_count,
                        NULL /* assoc_id */);
-    if (rv < 0) {
+    if (rv < 0 && !(nonblocking &&
+                (ogs_socket_errno == EINPROGRESS ||
+                 ogs_socket_errno == EWOULDBLOCK))) {
         ogs_log_message(OGS_LOG_ERROR, ogs_socket_errno,
                         "sctp_connectx() failed to connect");
         goto err;

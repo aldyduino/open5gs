@@ -158,7 +158,7 @@ ogs_sock_t *ogs_sctp_server(
 ogs_sock_t *ogs_sctp_client(
         int type,
         ogs_sockaddr_t *sa_list, ogs_sockaddr_t *local_sa_list,
-        ogs_sockopt_t *socket_option)
+        ogs_sockopt_t *socket_option, bool nonblocking)
 {
     int rv;
     int local_count = 0;
@@ -180,6 +180,12 @@ ogs_sock_t *ogs_sctp_client(
     while (addr) {
         new = ogs_sctp_socket(addr->ogs_sa_family, type);
         if (new) {
+            if (nonblocking &&
+                    usrsctp_set_non_blocking((struct socket *)new, 1) < 0) {
+                ogs_sctp_destroy(new);
+                return NULL;
+            }
+
             rv = ogs_sctp_peer_addr_params(new, &option);
             ogs_assert(rv == OGS_OK);
 
@@ -292,6 +298,9 @@ int ogs_sctp_connect(ogs_sock_t *sock, ogs_sockaddr_t *sa_list)
     ogs_assert(addrlen);
 
     if (usrsctp_connect(socket, &sa_list->sa, addrlen) != 0) {
+        if (ogs_socket_errno == EINPROGRESS ||
+                ogs_socket_errno == EWOULDBLOCK)
+            return OGS_OK;
         ogs_error("sctp_connect() %s", ogs_sockaddr_to_string_static(sa_list));
         return OGS_ERROR;
     }
