@@ -6,6 +6,9 @@
 #include "LCSAP_Geographical-Area.h"
 #include "LCSAP_Geographical-Coordinates.h"
 #include "LCSAP_Ellipsoid-Point-With-Uncertainty-Ellipse.h"
+#include "LCSAP_Ellipsoid-Point-With-Altitude.h"
+#include "LCSAP_Ellipsoid-Point-With-Altitude-And-Uncertainty-Ellipsoid.h"
+#include "LCSAP_Altitude-And-Direction.h"
 #include "LCSAP_Uncertainty-Ellipse.h"
 #include "LCSAP_InitiatingMessage.h"
 #include "LCSAP_LCS-AP-PDU.h"
@@ -160,9 +163,15 @@ void lcsap_slg_final(void)
 }
 
 static int lcsap_slg_geographical_area(
-        LCSAP_Geographical_Area_t *area, uint8_t info[11], size_t *info_len)
+        LCSAP_Geographical_Area_t *area, uint8_t info[15], size_t *info_len)
 {
     LCSAP_Geographical_Coordinates_t *coordinates = NULL;
+    LCSAP_Altitude_And_Direction_t *altitude_and_direction = NULL;
+    LCSAP_Uncertainty_Ellipse_t *uncertainty_ellipse = NULL;
+    long uncertainty_altitude = 0;
+    long confidence = 0;
+    bool with_altitude = false;
+    bool with_uncertainty_ellipse = false;
     int32_t longitude;
     uint32_t latitude;
 
@@ -180,14 +189,35 @@ static int lcsap_slg_geographical_area(
         LCSAP_Ellipsoid_Point_With_Uncertainty_Ellipse_t *ellipse =
             area->choice.ellipsoidPoint_With_Uncertainty_Ellipse;
         coordinates = ellipse->geographical_Coordinates;
-        if (ellipse->uncertainty_Ellipse->uncertainty_SemiMajor < 0 ||
-            ellipse->uncertainty_Ellipse->uncertainty_SemiMajor > 127 ||
-            ellipse->uncertainty_Ellipse->uncertainty_SemiMinor < 0 ||
-            ellipse->uncertainty_Ellipse->uncertainty_SemiMinor > 127 ||
-            ellipse->uncertainty_Ellipse->orientation_Major_Axis < 0 ||
-            ellipse->uncertainty_Ellipse->orientation_Major_Axis > 89 ||
-            ellipse->confidence < 0 || ellipse->confidence > 100)
-            return OGS_ERROR;
+        uncertainty_ellipse = ellipse->uncertainty_Ellipse;
+        confidence = ellipse->confidence;
+        with_uncertainty_ellipse = true;
+    } else if (area->present ==
+            LCSAP_Geographical_Area_PR_ellipsoid_Point_With_Altitude &&
+            area->choice.ellipsoid_Point_With_Altitude &&
+            area->choice.ellipsoid_Point_With_Altitude->
+                altitude_And_Direction) {
+        LCSAP_Ellipsoid_Point_With_Altitude_t *altitude =
+            area->choice.ellipsoid_Point_With_Altitude;
+        coordinates = altitude->geographical_Coordinates;
+        altitude_and_direction = altitude->altitude_And_Direction;
+        with_altitude = true;
+    } else if (area->present ==
+            LCSAP_Geographical_Area_PR_ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid &&
+            area->choice.ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid &&
+            area->choice.ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid->
+                altitude_And_Direction &&
+            area->choice.ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid->
+                uncertainty_Ellipse) {
+        LCSAP_Ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid_t *altitude =
+            area->choice.ellipsoid_Point_With_Altitude_And_Uncertainty_Ellipsoid;
+        coordinates = altitude->geographical_Coordinates;
+        altitude_and_direction = altitude->altitude_And_Direction;
+        uncertainty_ellipse = altitude->uncertainty_Ellipse;
+        uncertainty_altitude = altitude->uncertainty_Altitude;
+        confidence = altitude->confidence;
+        with_altitude = true;
+        with_uncertainty_ellipse = true;
     } else {
         return OGS_ERROR;
     }
@@ -202,12 +232,35 @@ static int lcsap_slg_geographical_area(
         coordinates->degreesLongitude < -8388608 ||
         coordinates->degreesLongitude > 8388607)
         return OGS_ERROR;
+    if (with_altitude &&
+        (altitude_and_direction->direction_Of_Altitude <
+                LCSAP_Direction_Of_Altitude_height ||
+         altitude_and_direction->direction_Of_Altitude >
+                LCSAP_Direction_Of_Altitude_depth ||
+         altitude_and_direction->altitude < 0 ||
+         altitude_and_direction->altitude > 32767))
+        return OGS_ERROR;
+    if (with_uncertainty_ellipse &&
+        (!uncertainty_ellipse ||
+         uncertainty_ellipse->uncertainty_SemiMajor < 0 ||
+         uncertainty_ellipse->uncertainty_SemiMajor > 127 ||
+         uncertainty_ellipse->uncertainty_SemiMinor < 0 ||
+         uncertainty_ellipse->uncertainty_SemiMinor > 127 ||
+         uncertainty_ellipse->orientation_Major_Axis < 0 ||
+         uncertainty_ellipse->orientation_Major_Axis > 89 ||
+         confidence < 0 || confidence > 100 ||
+         (with_altitude &&
+          (uncertainty_altitude < 0 || uncertainty_altitude > 127))))
+        return OGS_ERROR;
 
     latitude = (uint32_t)coordinates->degreesLatitude;
     longitude = (int32_t)coordinates->degreesLongitude;
 
-    info[0] = area->present == LCSAP_Geographical_Area_PR_point ?
-        0x80 : 0x81;
+    if (with_altitude)
+        info[0] = with_uncertainty_ellipse ? 0x85 : 0x84;
+    else
+        info[0] = area->present == LCSAP_Geographical_Area_PR_point ?
+            0x80 : 0x81;
     info[1] = (coordinates->latitudeSign ==
             LCSAP_LatitudeSign_south ? 0x80 : 0) |
         (uint8_t)((latitude >> 16) & 0x7f);
@@ -216,18 +269,29 @@ static int lcsap_slg_geographical_area(
     info[4] = (uint8_t)(longitude >> 16);
     info[5] = (uint8_t)(longitude >> 8);
     info[6] = (uint8_t)longitude;
-    if (area->present ==
-            LCSAP_Geographical_Area_PR_ellipsoidPoint_With_Uncertainty_Ellipse) {
-        LCSAP_Ellipsoid_Point_With_Uncertainty_Ellipse_t *ellipse =
-            area->choice.ellipsoidPoint_With_Uncertainty_Ellipse;
-        info[7] = (uint8_t)ellipse->uncertainty_Ellipse->uncertainty_SemiMajor;
-        info[8] = (uint8_t)ellipse->uncertainty_Ellipse->uncertainty_SemiMinor;
-        info[9] = (uint8_t)(ellipse->uncertainty_Ellipse->
-                orientation_Major_Axis * 2);
-        info[10] = (uint8_t)ellipse->confidence;
-        *info_len = 11;
+    if (with_altitude) {
+        info[7] =
+            (altitude_and_direction->direction_Of_Altitude ==
+                LCSAP_Direction_Of_Altitude_depth ? 0x80 : 0) |
+            (uint8_t)((altitude_and_direction->altitude >> 8) & 0x7f);
+        info[8] = (uint8_t)altitude_and_direction->altitude;
+    }
+    if (with_uncertainty_ellipse) {
+        size_t offset = with_altitude ? 9 : 7;
+        info[offset] = (uint8_t)uncertainty_ellipse->uncertainty_SemiMajor;
+        info[offset + 1] = (uint8_t)uncertainty_ellipse->uncertainty_SemiMinor;
+        info[offset + 2] = (uint8_t)(
+                uncertainty_ellipse->orientation_Major_Axis * 2);
+        if (with_altitude) {
+            info[offset + 3] = (uint8_t)uncertainty_altitude;
+            info[offset + 4] = (uint8_t)confidence;
+            *info_len = 15;
+        } else {
+            info[offset + 3] = (uint8_t)confidence;
+            *info_len = 11;
+        }
     } else {
-        *info_len = 7;
+        *info_len = with_altitude ? 9 : 7;
     }
     return OGS_OK;
 }
@@ -238,7 +302,7 @@ static void lcsap_slg_location_response(LCSAP_Location_Response_t *response,
     LCSAP_ProtocolIE_Container_81P1_t *container = NULL;
     LCSAP_Geographical_Area_t *area = NULL;
     LCSAP_Correlation_ID_t *correlation = NULL;
-    uint8_t information[11];
+    uint8_t information[15];
     size_t information_len = 0;
     uint32_t correlation_id;
     int i;
