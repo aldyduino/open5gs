@@ -898,6 +898,7 @@ struct mme_ue_s {
 #define MME_PAGING_TYPE_CS_CALL_SERVICE 5
 #define MME_PAGING_TYPE_SMS_SERVICE 6
 #define MME_PAGING_TYPE_DETACH_TO_UE 7
+#define MME_PAGING_TYPE_SLG_PROVIDE_LOCATION 8
         int type;
         void *data;
         bool failed;

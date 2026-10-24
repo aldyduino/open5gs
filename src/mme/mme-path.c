@@ -24,6 +24,7 @@
 #include "mme-path.h"
 #include "mme-fd-path.h"
 #include "mme-sm.h"
+#include "lcsap-path.h"
 
 void mme_send_delete_session_or_update_location_request(
         enb_ue_t *enb_ue, mme_ue_t *mme_ue)
@@ -348,6 +349,9 @@ void mme_send_after_paging(mme_ue_t *mme_ue, bool failed)
                     ogs_error("ENB-S1 Context has already been removed");
             }
         }
+        break;
+    case MME_PAGING_TYPE_SLG_PROVIDE_LOCATION:
+        lcsap_slg_paging_complete(mme_ue, failed);
         break;
     default:
         ogs_fatal("Invalid Paging Type[%d]", mme_ue->paging.type);

@@ -37,6 +37,10 @@
 typedef struct lcsap_slg_pending_s {
     ogs_lnode_t lnode;
     uint32_t correlation_id;
+    ogs_pool_id_t mme_ue_id;
+    long location_type;
+    long client_type;
+    lcsap_location_request_options_t options;
     struct msg *diameter_request;
     ogs_timer_t *timer;
 } lcsap_slg_pending_t;
@@ -52,6 +56,19 @@ static lcsap_slg_pending_t *lcsap_slg_pending_find(uint32_t correlation_id)
             return pending;
     }
 
+
+    return NULL;
+}
+
+static lcsap_slg_pending_t *lcsap_slg_pending_find_by_mme_ue_id(
+        ogs_pool_id_t mme_ue_id)
+{
+    lcsap_slg_pending_t *pending = NULL;
+
+    ogs_list_for_each(&slg_pending_list, pending) {
+        if (pending->mme_ue_id == mme_ue_id)
+            return pending;
+    }
 
     return NULL;
 }
@@ -375,6 +392,77 @@ static int lcsap_slg_optional_grouped_integer(struct avp *group,
     return OGS_OK;
 }
 
+static void lcsap_slg_send_location_request(
+        lcsap_slg_pending_t *pending, mme_ue_t *mme_ue)
+{
+    enb_ue_t *enb_ue = NULL;
+    ogs_nas_plmn_id_t nas_plmn_id;
+    ogs_pkbuf_t *pkbuf = NULL;
+
+    ogs_assert(pending);
+    ogs_assert(mme_ue);
+
+    enb_ue = enb_ue_find_by_id(mme_ue->enb_ue_id);
+    if (!ECM_CONNECTED(mme_ue) || !enb_ue ||
+        enb_ue->mme_ue_s1ap_id == INVALID_UE_S1AP_ID ||
+        enb_ue->enb_ue_s1ap_id == INVALID_UE_S1AP_ID) {
+        ogs_warn("SLg request for IMSI[%s] has no valid S1 context",
+                mme_ue->imsi_bcd);
+        goto reject;
+    }
+
+    pending->correlation_id = enb_ue->mme_ue_s1ap_id;
+    if (lcsap_slg_pending_find(pending->correlation_id) != pending) {
+        ogs_warn("SLg request already pending for Correlation-ID[%u]",
+                pending->correlation_id);
+        goto reject;
+    }
+
+    ogs_nas_from_plmn_id(&nas_plmn_id, &mme_ue->e_cgi.plmn_id);
+    pkbuf = lcsap_build_location_request(pending->correlation_id,
+            pending->location_type == 0 ?
+                LCSAP_Location_Type_geographic_Information :
+                LCSAP_Location_Type_last_known_location,
+            (const uint8_t *)mme_ue->imsi_bcd, strlen(mme_ue->imsi_bcd),
+            (const uint8_t *)&nas_plmn_id, mme_ue->e_cgi.cell_id,
+            pending->client_type, &pending->options);
+    if (!pkbuf || lcsap_send_to_esmlc(pkbuf) != OGS_OK)
+        goto reject;
+
+    ogs_timer_start(pending->timer, ogs_time_from_sec(30));
+    return;
+
+reject:
+    if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+            OGS_OK)
+        ogs_error("Failed to send SLg location request failure answer");
+    lcsap_slg_pending_remove(pending);
+}
+
+void lcsap_slg_paging_complete(mme_ue_t *mme_ue, bool failed)
+{
+    lcsap_slg_pending_t *pending = NULL;
+
+    ogs_assert(mme_ue);
+    pending = lcsap_slg_pending_find_by_mme_ue_id(mme_ue->id);
+    if (!pending) {
+        ogs_warn("No pending SLg request after paging [IMSI:%s]",
+                mme_ue->imsi_bcd);
+        return;
+    }
+
+    if (failed) {
+        ogs_warn("SLg paging failed [IMSI:%s]", mme_ue->imsi_bcd);
+        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+                OGS_OK)
+            ogs_error("Failed to send SLg paging failure answer");
+        lcsap_slg_pending_remove(pending);
+        return;
+    }
+
+    lcsap_slg_send_location_request(pending, mme_ue);
+}
+
 void lcsap_handle_slg_request(struct msg *request)
 {
     struct avp *avp = NULL;
@@ -388,12 +476,8 @@ void lcsap_handle_slg_request(struct msg *request)
     long lcs_service_type_id;
     long velocity_requested;
     lcsap_location_request_options_t options = { 0 };
-    ogs_nas_plmn_id_t nas_plmn_id;
     mme_ue_t *mme_ue = NULL;
-    enb_ue_t *enb_ue = NULL;
     lcsap_slg_pending_t *pending = NULL;
-    ogs_pkbuf_t *pkbuf = NULL;
-    uint32_t correlation_id;
     int rv;
 
     ogs_assert(request);
@@ -531,25 +615,21 @@ void lcsap_handle_slg_request(struct msg *request)
     }
 
     mme_ue = mme_ue_find_by_imsi_bcd(imsi);
-    if (!mme_ue || !ECM_CONNECTED(mme_ue)) {
+    if (!mme_ue || !OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
         ogs_warn("SLg request for inactive or unknown IMSI[%s]", imsi);
         goto reject;
     }
-    enb_ue = enb_ue_find_by_id(mme_ue->enb_ue_id);
-    if (!enb_ue || enb_ue->mme_ue_s1ap_id == INVALID_UE_S1AP_ID ||
-        enb_ue->enb_ue_s1ap_id == INVALID_UE_S1AP_ID) {
-        ogs_warn("SLg request for IMSI[%s] has no valid S1 context", imsi);
-        goto reject;
-    }
-    correlation_id = enb_ue->mme_ue_s1ap_id;
-    if (lcsap_slg_pending_find(correlation_id)) {
+    if (lcsap_slg_pending_find_by_mme_ue_id(mme_ue->id)) {
         ogs_warn("SLg request already pending for IMSI[%s]", imsi);
         goto reject;
     }
 
     pending = ogs_calloc(1, sizeof(*pending));
     ogs_assert(pending);
-    pending->correlation_id = correlation_id;
+    pending->mme_ue_id = mme_ue->id;
+    pending->location_type = location_type;
+    pending->client_type = client_type;
+    pending->options = options;
     pending->diameter_request = request;
     pending->timer = ogs_timer_add(ogs_app()->timer_mgr,
             lcsap_slg_timeout, pending);
@@ -560,22 +640,33 @@ void lcsap_handle_slg_request(struct msg *request)
     }
     ogs_list_add(&slg_pending_list, pending);
 
-    ogs_nas_from_plmn_id(&nas_plmn_id, &mme_ue->e_cgi.plmn_id);
-    pkbuf = lcsap_build_location_request(correlation_id,
-            location_type == 0 ?
-                LCSAP_Location_Type_geographic_Information :
-                LCSAP_Location_Type_last_known_location,
-            (const uint8_t *)imsi, imsi_len,
-            (const uint8_t *)&nas_plmn_id, mme_ue->e_cgi.cell_id,
-            client_type, &options);
-    if (!pkbuf || lcsap_send_to_esmlc(pkbuf) != OGS_OK) {
-        if (pending->diameter_request)
-            (void)lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY,
-                    NULL, 0);
+    if (ECM_CONNECTED(mme_ue)) {
+        lcsap_slg_send_location_request(pending, mme_ue);
+        return;
+    }
+
+    if (MME_PAGING_ONGOING(mme_ue)) {
+        ogs_warn("Cannot page IMSI[%s] for SLg request; paging is ongoing",
+                imsi);
+        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+                OGS_OK)
+            ogs_error("Failed to send SLg paging collision answer");
         lcsap_slg_pending_remove(pending);
         return;
     }
-    ogs_timer_start(pending->timer, ogs_time_from_sec(30));
+
+    MME_STORE_PAGING_INFO(mme_ue,
+            MME_PAGING_TYPE_SLG_PROVIDE_LOCATION, NULL);
+    rv = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+    if (rv != OGS_OK) {
+        MME_CLEAR_PAGING_INFO(mme_ue);
+        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+                OGS_OK)
+            ogs_error("Failed to send SLg paging initiation failure answer");
+        lcsap_slg_pending_remove(pending);
+    } else {
+        ogs_info("Paging registered idle UE for SLg request [IMSI:%s]", imsi);
+    }
     return;
 
 reject:
