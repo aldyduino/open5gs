@@ -41,21 +41,43 @@ typedef struct lcsap_slg_pending_s {
     long location_type;
     long client_type;
     lcsap_location_request_options_t options;
+    bool active;
+    bool location_request_sent;
     struct msg *diameter_request;
     ogs_timer_t *timer;
 } lcsap_slg_pending_t;
 
 static ogs_list_t slg_pending_list;
 
+static lcsap_slg_pending_t *lcsap_slg_pending_find_active_by_mme_ue_id(
+        ogs_pool_id_t mme_ue_id);
+static lcsap_slg_pending_t *lcsap_slg_pending_find_by_mme_ue_id(
+        ogs_pool_id_t mme_ue_id);
+static void lcsap_slg_start_next(mme_ue_t *mme_ue);
+
 static lcsap_slg_pending_t *lcsap_slg_pending_find(uint32_t correlation_id)
 {
     lcsap_slg_pending_t *pending = NULL;
 
     ogs_list_for_each(&slg_pending_list, pending) {
-        if (pending->correlation_id == correlation_id)
+        if (pending->location_request_sent &&
+            pending->correlation_id == correlation_id)
             return pending;
     }
 
+
+    return NULL;
+}
+
+static lcsap_slg_pending_t *lcsap_slg_pending_find_active_by_mme_ue_id(
+        ogs_pool_id_t mme_ue_id)
+{
+    lcsap_slg_pending_t *pending = NULL;
+
+    ogs_list_for_each(&slg_pending_list, pending) {
+        if (pending->mme_ue_id == mme_ue_id && pending->active)
+            return pending;
+    }
 
     return NULL;
 }
@@ -157,13 +179,17 @@ static void lcsap_slg_pending_remove(lcsap_slg_pending_t *pending)
 static void lcsap_slg_timeout(void *data)
 {
     lcsap_slg_pending_t *pending = data;
+    mme_ue_t *mme_ue = NULL;
 
     ogs_assert(pending);
     ogs_warn("SLg Provide-Location timed out [Correlation-ID:%u]",
             pending->correlation_id);
     if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) != OGS_OK)
         ogs_error("Failed to send SLg timeout answer");
+    mme_ue = mme_ue_find_by_id(pending->mme_ue_id);
     lcsap_slg_pending_remove(pending);
+    if (mme_ue)
+        lcsap_slg_start_next(mme_ue);
 }
 
 void lcsap_slg_init(void)
@@ -368,7 +394,12 @@ static void lcsap_slg_location_response(LCSAP_Location_Response_t *response,
                 information, information_len) != OGS_OK) {
         ogs_error("Failed to send SLg location answer");
     }
-    lcsap_slg_pending_remove(pending);
+    {
+        mme_ue_t *mme_ue = mme_ue_find_by_id(pending->mme_ue_id);
+        lcsap_slg_pending_remove(pending);
+        if (mme_ue)
+            lcsap_slg_start_next(mme_ue);
+    }
 }
 
 static int lcsap_slg_optional_grouped_integer(struct avp *group,
@@ -411,12 +442,12 @@ static void lcsap_slg_send_location_request(
         goto reject;
     }
 
-    pending->correlation_id = enb_ue->mme_ue_s1ap_id;
-    if (lcsap_slg_pending_find(pending->correlation_id) != pending) {
+    if (lcsap_slg_pending_find(enb_ue->mme_ue_s1ap_id)) {
         ogs_warn("SLg request already pending for Correlation-ID[%u]",
-                pending->correlation_id);
+                enb_ue->mme_ue_s1ap_id);
         goto reject;
     }
+    pending->correlation_id = enb_ue->mme_ue_s1ap_id;
 
     ogs_nas_from_plmn_id(&nas_plmn_id, &mme_ue->e_cgi.plmn_id);
     pkbuf = lcsap_build_location_request(pending->correlation_id,
@@ -429,6 +460,7 @@ static void lcsap_slg_send_location_request(
     if (!pkbuf || lcsap_send_to_esmlc(pkbuf) != OGS_OK)
         goto reject;
 
+    pending->location_request_sent = true;
     ogs_timer_start(pending->timer, ogs_time_from_sec(30));
     return;
 
@@ -437,6 +469,58 @@ reject:
             OGS_OK)
         ogs_error("Failed to send SLg location request failure answer");
     lcsap_slg_pending_remove(pending);
+    lcsap_slg_start_next(mme_ue);
+}
+
+static void lcsap_slg_start_next(mme_ue_t *mme_ue)
+{
+    lcsap_slg_pending_t *pending = NULL;
+    int rv;
+
+    ogs_assert(mme_ue);
+    if (lcsap_slg_pending_find_active_by_mme_ue_id(mme_ue->id))
+        return;
+
+    ogs_list_for_each(&slg_pending_list, pending) {
+        if (pending->mme_ue_id == mme_ue->id)
+            break;
+    }
+    if (!pending)
+        return;
+
+    if (!OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
+        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+                OGS_OK)
+            ogs_error("Failed to send SLg inactive UE answer");
+        lcsap_slg_pending_remove(pending);
+        lcsap_slg_start_next(mme_ue);
+        return;
+    }
+
+    if (ECM_CONNECTED(mme_ue)) {
+        pending->active = true;
+        lcsap_slg_send_location_request(pending, mme_ue);
+        return;
+    }
+
+    if (MME_PAGING_ONGOING(mme_ue))
+        return;
+
+    pending->active = true;
+    MME_STORE_PAGING_INFO(mme_ue,
+            MME_PAGING_TYPE_SLG_PROVIDE_LOCATION, NULL);
+    rv = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
+    if (rv != OGS_OK) {
+        MME_CLEAR_PAGING_INFO(mme_ue);
+        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
+                OGS_OK)
+            ogs_error("Failed to send SLg paging initiation failure answer");
+        lcsap_slg_pending_remove(pending);
+        lcsap_slg_start_next(mme_ue);
+    } else {
+        ogs_info("Paging registered idle UE for SLg request [IMSI:%s]",
+                mme_ue->imsi_bcd);
+    }
 }
 
 void lcsap_slg_paging_complete(mme_ue_t *mme_ue, bool failed)
@@ -444,10 +528,9 @@ void lcsap_slg_paging_complete(mme_ue_t *mme_ue, bool failed)
     lcsap_slg_pending_t *pending = NULL;
 
     ogs_assert(mme_ue);
-    pending = lcsap_slg_pending_find_by_mme_ue_id(mme_ue->id);
+    pending = lcsap_slg_pending_find_active_by_mme_ue_id(mme_ue->id);
     if (!pending) {
-        ogs_warn("No pending SLg request after paging [IMSI:%s]",
-                mme_ue->imsi_bcd);
+        lcsap_slg_start_next(mme_ue);
         return;
     }
 
@@ -457,6 +540,7 @@ void lcsap_slg_paging_complete(mme_ue_t *mme_ue, bool failed)
                 OGS_OK)
             ogs_error("Failed to send SLg paging failure answer");
         lcsap_slg_pending_remove(pending);
+        lcsap_slg_start_next(mme_ue);
         return;
     }
 
@@ -619,7 +703,8 @@ void lcsap_handle_slg_request(struct msg *request)
         ogs_warn("SLg request for inactive or unknown IMSI[%s]", imsi);
         goto reject;
     }
-    if (lcsap_slg_pending_find_by_mme_ue_id(mme_ue->id)) {
+    if (!mme_self()->lcsap_allow_multiple_slg_requests &&
+        lcsap_slg_pending_find_by_mme_ue_id(mme_ue->id)) {
         ogs_warn("SLg request already pending for IMSI[%s]", imsi);
         goto reject;
     }
@@ -640,33 +725,7 @@ void lcsap_handle_slg_request(struct msg *request)
     }
     ogs_list_add(&slg_pending_list, pending);
 
-    if (ECM_CONNECTED(mme_ue)) {
-        lcsap_slg_send_location_request(pending, mme_ue);
-        return;
-    }
-
-    if (MME_PAGING_ONGOING(mme_ue)) {
-        ogs_warn("Cannot page IMSI[%s] for SLg request; paging is ongoing",
-                imsi);
-        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
-                OGS_OK)
-            ogs_error("Failed to send SLg paging collision answer");
-        lcsap_slg_pending_remove(pending);
-        return;
-    }
-
-    MME_STORE_PAGING_INFO(mme_ue,
-            MME_PAGING_TYPE_SLG_PROVIDE_LOCATION, NULL);
-    rv = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
-    if (rv != OGS_OK) {
-        MME_CLEAR_PAGING_INFO(mme_ue);
-        if (lcsap_slg_answer(pending, ER_DIAMETER_UNABLE_TO_COMPLY, NULL, 0) !=
-                OGS_OK)
-            ogs_error("Failed to send SLg paging initiation failure answer");
-        lcsap_slg_pending_remove(pending);
-    } else {
-        ogs_info("Paging registered idle UE for SLg request [IMSI:%s]", imsi);
-    }
+    lcsap_slg_start_next(mme_ue);
     return;
 
 reject:

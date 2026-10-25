@@ -206,6 +206,7 @@ mme:
 #  o E-SMLC
 #  lcsap:
 #    routing_id: 0 # S1AP LPPa Routing-ID configured for this E-SMLC (0-255)
+#    allow_multiple_slg_requests: false # Queue multiple SLg requests for one IMSI
 #    server:
 #      - address: 127.0.0.1
 #        port: 9082

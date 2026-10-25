@@ -2532,6 +2532,10 @@ int mme_context_parse_config(void)
                                 return OGS_ERROR;
                             }
                             self.lcsap_routing_id = routing_id;
+                        } else if (!strcmp(lcsap_key,
+                                    "allow_multiple_slg_requests")) {
+                            self.lcsap_allow_multiple_slg_requests =
+                                ogs_yaml_iter_bool(&lcsap_iter);
                         } else if (!strcmp(lcsap_key, "server")) {
                             ogs_yaml_iter_t server_iter, server_array;
                             ogs_yaml_iter_recurse(

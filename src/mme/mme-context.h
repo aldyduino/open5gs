@@ -103,6 +103,7 @@ typedef struct mme_context_s {
     uint16_t        sgsap_port;     /* Default SGsAP Port */
     uint16_t        lcsap_port;     /* Default LCS-AP Port */
     uint8_t         lcsap_routing_id; /* Default S1AP LPPa Routing ID */
+    bool            lcsap_allow_multiple_slg_requests;
 
     ogs_list_t      s1ap_list;      /* MME S1AP IPv4 Server List */
     ogs_list_t      s1ap_list6;     /* MME S1AP IPv6 Server List */

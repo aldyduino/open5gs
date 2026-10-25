@@ -202,11 +202,13 @@ void mme_send_release_access_bearer_or_ue_context_release(enb_ue_t *enb_ue)
 void mme_send_after_paging(mme_ue_t *mme_ue, bool failed)
 {
     int r;
+    int paging_type;
     mme_bearer_t *bearer = NULL;
 
     ogs_assert(mme_ue);
 
-    switch (mme_ue->paging.type) {
+    paging_type = mme_ue->paging.type;
+    switch (paging_type) {
     case MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION:
         bearer = mme_bearer_find_by_id(
                 OGS_POINTER_TO_UINT(mme_ue->paging.data));
@@ -351,7 +353,6 @@ void mme_send_after_paging(mme_ue_t *mme_ue, bool failed)
         }
         break;
     case MME_PAGING_TYPE_SLG_PROVIDE_LOCATION:
-        lcsap_slg_paging_complete(mme_ue, failed);
         break;
     default:
         ogs_fatal("Invalid Paging Type[%d]", mme_ue->paging.type);
@@ -364,6 +365,7 @@ cleanup:
     /* the above will clear the failure flag, restore it if we failed */
     if (failed)
         mme_ue->paging.failed = true;
+    lcsap_slg_paging_complete(mme_ue, failed);
 }
 
 /* ----------------------------------------------------------------------
